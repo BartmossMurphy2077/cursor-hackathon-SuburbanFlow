@@ -114,14 +114,22 @@ async def run_dag_pipeline(
     prompt: str,
     on_event: OnEvent,
     settings: Settings,
+    *,
+    initial_outputs: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[dict[str, dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     layers = topological_layers(graph)
     node_lookup = node_map(graph)
-    outputs: dict[str, dict[str, Any]] = {}
+    outputs: dict[str, dict[str, Any]] = dict(initial_outputs or {})
     judge_history: dict[str, list[dict[str, Any]]] = {}
     judge_service = LLMJudgeService(settings)
 
     async def run_single(node_id: str) -> None:
+        if node_id in outputs:
+            await on_event({"type": "node_start", "node_id": node_id, "resumed": True})
+            await on_event(
+                {"type": "node_complete", "node_id": node_id, "output": outputs[node_id], "resumed": True},
+            )
+            return
         await _run_node_with_optional_judge(
             graph=graph,
             node_id=node_id,
