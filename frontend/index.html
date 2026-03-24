@@ -2,72 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AgentCanvas MVP</title>
-    <style>
-      body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-      textarea { width: 100%; min-height: 90px; }
-      button { margin-top: 1rem; padding: 0.6rem 1rem; }
-      pre { background: #111; color: #f6f6f6; padding: 1rem; border-radius: 8px; overflow: auto; min-height: 280px; }
-    </style>
+    <title>AgentCanvas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <h1>AgentCanvas MVP</h1>
-    <p>SSE-first pipeline demo with typed run contracts.</p>
-    <label for="prompt">Prompt</label>
-    <textarea id="prompt">Help me draft a short atomic-structures report.</textarea>
-    <br />
-    <button id="runBtn">Run Pipeline</button>
-    <h2>Events</h2>
-    <pre id="events"></pre>
-
-    <script>
-      const output = document.getElementById("events");
-      const runButton = document.getElementById("runBtn");
-      const promptEl = document.getElementById("prompt");
-
-      const defaultGraph = {
-        nodes: [
-          { id: "agent_1", name: "Researcher", role: "Research the topic", output_key: "summary", output_type: "text" },
-          { id: "agent_2", name: "Writer", role: "Write report from summary", output_key: "report", output_type: "text" }
-        ],
-        edges: [{ source: "agent_1", target: "agent_2" }],
-        collector: { id: "collector", name: "Collector", kind: "collector" },
-        global_context: {}
-      };
-
-      function append(line) {
-        output.textContent += line + "\n";
-        output.scrollTop = output.scrollHeight;
-      }
-
-      runButton.addEventListener("click", async () => {
-        output.textContent = "";
-        append("Starting run...");
-
-        const res = await fetch("/runs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sandbox_id: "demo_sandbox",
-            prompt: promptEl.value,
-            graph: defaultGraph
-          })
-        });
-        const data = await res.json();
-        append("Run ID: " + data.run_id);
-
-        const events = new EventSource(`/runs/${data.run_id}/events`);
-        events.onmessage = (msg) => append(msg.data);
-        events.addEventListener("end", () => {
-          append("Stream ended.");
-          events.close();
-        });
-        events.onerror = () => {
-          append("Stream error, check /runs/{id} snapshot.");
-          events.close();
-        };
-      });
-    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
