@@ -19,8 +19,22 @@
               "id": { "type": "string" },
               "name": { "type": "string" },
               "role": { "type": "string" },
+              "provider": { "enum": ["anthropic", "openai"] },
+              "model": { "type": ["string", "null"] },
               "output_key": { "type": "string" },
-              "output_type": { "enum": ["text", "json"] }
+              "output_type": { "enum": ["text", "json"] },
+              "temperature": { "type": "number", "minimum": 0, "maximum": 2 },
+              "judge": {
+                "type": ["object", "null"],
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "criteria": { "type": "string" },
+                  "provider": { "enum": ["anthropic", "openai"] },
+                  "model": { "type": ["string", "null"] },
+                  "min_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "max_retries": { "type": "integer", "minimum": 0, "maximum": 10 }
+                }
+              }
             }
           }
         },
@@ -31,7 +45,9 @@
             "required": ["source", "target"],
             "properties": {
               "source": { "type": "string" },
-              "target": { "type": "string" }
+              "target": { "type": "string" },
+              "source_field": { "type": ["string", "null"] },
+              "target_field": { "type": ["string", "null"] }
             }
           }
         },

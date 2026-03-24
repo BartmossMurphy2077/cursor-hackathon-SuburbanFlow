@@ -1,3 +1,5 @@
 fastapi
 uvicorn[standard]
 pydantic
+pydantic-settings
+pydantic-ai-slim[openai,anthropic]>=0.8.1,<0.9

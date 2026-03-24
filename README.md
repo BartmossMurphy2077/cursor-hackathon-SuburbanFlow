@@ -60,7 +60,7 @@ Projects will be evaluated based on the rubric in [CHALLENGE.md](./CHALLENGE.md)
 This repository now includes an MVP implementation path for AgentCanvas that fits hackathon constraints:
 
 - Vercel-compatible API entrypoint via `api/index.py`
-- FastAPI runtime and typed contracts with Pydantic in `backend_or_api/app/`
+- FastAPI runtime, **PydanticAI** agents/judges (`backend_or_api/app/pai/`), and Pydantic contracts in `backend_or_api/app/`
 - SSE event stream for live node progress and token chunks
 - Minimal DAG executor with parallel execution for independent node layers
 - JSON schema artifact for run payload in `schemas/run_request.schema.json`
@@ -78,6 +78,8 @@ This keeps the frontend transport-agnostic and compatible with a later migration
 ## 7. Local Development
 
 ### 7.1 Run with Python
+
+Agents and the LLM judge use [PydanticAI](https://ai.pydantic.dev/) (`pydantic-ai-slim` with OpenAI + Anthropic). **Use Python 3.10 or newer** locally (the Docker image is already 3.12).
 
 ```bash
 python -m venv .venv
