@@ -12,10 +12,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .executor import run_dag_pipeline
-from .models import RunRequest, RunSnapshot
+from .routers import graph, health, meta, runs
 
-app = FastAPI(title="AgentCanvas MVP API", version="0.1.0")
+app = FastAPI(
+    title="AgentCanvas API",
+    version="0.2.0",
+    description=(
+        "Sandbox multi-agent orchestration: Pydantic-typed agents, DAG execution, "
+        "optional LLM judges, SSE run events. Deployable on Vercel (Python entry) or Docker."
+    ),
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +30,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(health.router)
+app.include_router(meta.router)
+app.include_router(runs.router)
+app.include_router(graph.router)
 RUNS: dict[str, RunSnapshot] = {}
 RUN_QUEUES: dict[str, list[asyncio.Queue[dict[str, Any]]]] = defaultdict(list)
 
@@ -47,6 +57,7 @@ async def health() -> dict[str, str]:
 
 @app.get("/")
 async def root() -> FileResponse:
+    return FileResponse("frontend/index.html")
     index = _FRONTEND_DIST / "index.html"
     if index.is_file():
         return FileResponse(index)
