@@ -10,3 +10,5 @@ dist/
 agentcanvas.db
 _test_mig.db
 _alembic_gen.db
+_test_merge.db
+_merge_test.py

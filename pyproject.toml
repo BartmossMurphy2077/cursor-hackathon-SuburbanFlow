@@ -1,0 +1,6 @@
+[project]
+name = "agentcanvas"
+version = "0.1.0"
+description = "AgentCanvas backend (FastAPI + PydanticAI)"
+readme = "README.md"
+requires-python = ">=3.10"

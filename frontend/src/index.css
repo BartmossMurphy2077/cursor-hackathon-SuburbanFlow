@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  @apply bg-canvas-bg text-slate-100 antialiased;
+}
+
+.react-flow__background {
+  @apply bg-canvas-bg;
+}
+
+.react-flow__controls {
+  @apply rounded-lg border border-canvas-border bg-canvas-panel shadow-lg;
+}
+
+.react-flow__controls-button {
+  @apply border-canvas-border bg-canvas-panel fill-slate-300;
+}

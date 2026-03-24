@@ -1,3 +1,5 @@
+"""Shared dependency helpers for FastAPI routers — config + auth."""
+
 from __future__ import annotations
 
 import os
@@ -11,6 +13,7 @@ from sqlmodel import Session, select
 
 from .auth_utils import decode_user_id, hash_password
 from . import database
+from .config import Settings, get_settings
 from .database import get_session
 from .db_models import Sandbox, User
 
@@ -59,7 +62,7 @@ def get_current_user_id_sse(
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)] = None,
     session: Session = Depends(get_session),
 ) -> str:
-    """Like `get_current_user_id`, but allows `?access_token=` for browsers (EventSource has no header)."""
+    """Like get_current_user_id but allows ?access_token= for EventSource."""
     if AUTH_DISABLED:
         return _ensure_dev_user_standalone()
     if creds is not None and creds.credentials:
@@ -94,3 +97,14 @@ def require_sandbox_owner(
     if row.owner_user_id != user_id:
         raise HTTPException(status_code=403, detail="Not allowed to access this sandbox")
     return row
+
+
+__all__ = [
+    "Settings",
+    "get_settings",
+    "get_session",
+    "get_current_user_id",
+    "get_current_user_id_sse",
+    "require_sandbox_owner",
+    "AUTH_DISABLED",
+]

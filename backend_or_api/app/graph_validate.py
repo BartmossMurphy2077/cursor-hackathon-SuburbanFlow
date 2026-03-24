@@ -4,7 +4,7 @@ from typing import NoReturn
 
 from fastapi import HTTPException
 
-from .models import PipelineGraph
+from .models.graph import PipelineGraph
 
 
 def _http422(msg: str) -> NoReturn:
@@ -29,8 +29,8 @@ def validate_pipeline_graph(graph: PipelineGraph) -> None:
             _http422(f"Edge target not found: {e.target}")
 
     try:
-        from .executor import _topological_layers
+        from .services.dag import topological_layers
 
-        _topological_layers(graph)
+        topological_layers(graph)
     except ValueError as exc:
         _http422(str(exc))

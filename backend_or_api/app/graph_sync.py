@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlmodel import Session, select
 
 from .db_models import SandboxEdge, SandboxNode
-from .models import PipelineGraph
+from .models.graph import PipelineGraph
 
 
 def sync_sandbox_projection(session: Session, sandbox_id: str, graph: PipelineGraph) -> None:
