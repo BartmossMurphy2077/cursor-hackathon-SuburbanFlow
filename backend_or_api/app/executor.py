@@ -68,13 +68,26 @@ async def run_dag_pipeline(
     graph: PipelineGraph,
     prompt: str,
     on_event,
+    *,
+    initial_outputs: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, dict[str, Any]]:
     layers = _topological_layers(graph)
     node_lookup = _node_map(graph)
-    outputs: dict[str, dict[str, Any]] = {}
+    outputs: dict[str, dict[str, Any]] = dict(initial_outputs or {})
 
     async def run_single(node_id: str) -> None:
         node = node_lookup[node_id]
+        if node_id in outputs:
+            await on_event({"type": "node_start", "node_id": node_id, "resumed": True})
+            await on_event(
+                {
+                    "type": "node_complete",
+                    "node_id": node_id,
+                    "output": outputs[node_id],
+                    "resumed": True,
+                },
+            )
+            return
         upstream = _upstream_outputs(graph, node_id, outputs)
         await on_event({"type": "node_start", "node_id": node_id})
         _, output, chunks = await _simulate_agent(node, prompt, upstream)

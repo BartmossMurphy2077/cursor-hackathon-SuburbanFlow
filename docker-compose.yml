@@ -1,5 +1,29 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agentcanvas
+      POSTGRES_PASSWORD: agentcanvas
+      POSTGRES_DB: agentcanvas
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentcanvas -d agentcanvas"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+
   agentcanvas:
     build: .
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://agentcanvas:agentcanvas@db:5432/agentcanvas
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

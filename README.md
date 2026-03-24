@@ -86,6 +86,21 @@ pip install -r backend_or_api/requirements.txt
 uvicorn backend_or_api.app.main:app --reload
 ```
 
+Without `DATABASE_URL`, the API uses a local SQLite file `agentcanvas.db` in the current working directory. On startup the API runs **Alembic migrations** (`alembic.ini` at the repo root). If you previously used an older schema, delete `agentcanvas.db` once or run migrations manually (see §7.4).
+
+For PostgreSQL locally, set:
+
+`DATABASE_URL=postgresql+psycopg://USER:PASSWORD@localhost:5432/DBNAME`
+
+**Authentication (recommended):**
+
+1. `POST /auth/register` with `{"email":"you@example.com","password":"atleast8chars"}` (or `POST /auth/login`).
+2. Send `Authorization: Bearer <access_token>` on all sandbox and run routes.
+
+**Local convenience:** set `AUTH_DISABLED=1` to auto-provision a dev user and skip bearer tokens (do **not** use in production).
+
+**Secrets:** set `JWT_SECRET` to a long random string in production (and on Vercel). Optional: `JWT_EXPIRE_MINUTES` (default: 10080 = 7 days).
+
 Open [http://localhost:8000](http://localhost:8000).
 
 ### 7.2 Run with Docker
@@ -98,10 +113,95 @@ Open [http://localhost:8000](http://localhost:8000).
 
 ### 7.3 API Endpoints
 
-- `POST /runs` starts a run and returns `run_id`
-- `GET /runs/{run_id}/events` streams SSE updates
-- `GET /runs/{run_id}` returns run snapshot state
+Unless `AUTH_DISABLED=1`, protected routes expect:
+
+`Authorization: Bearer <token>`
+
+(`POST /auth/register`, `POST /auth/login`, `GET /health`, and `GET /` are public.)
+
+**Auth**
+
+- `POST /auth/register` — body: `email`, `password` (min 8 chars); returns `{ access_token, token_type }`
+- `POST /auth/login` — same shape; returns token
+
+**Sandboxes** (scoped to the authenticated user)
+
+- `POST /sandboxes` — create sandbox (JSON body: `name`, optional `description`)
+- `GET /sandboxes` — list **your** sandboxes
+- `GET /sandboxes/{sandbox_id}` — sandbox metadata (403 if not yours)
+- `PATCH /sandboxes/{sandbox_id}` — update `name` / `description`
+- `DELETE /sandboxes/{sandbox_id}` — delete sandbox, projection rows, and its runs
+- `GET /sandboxes/{sandbox_id}/graph` — load saved `PipelineGraph`
+- `PATCH /sandboxes/{sandbox_id}/graph` — save canvas (`PipelineGraph` body); validates DAG; keeps normalized **node/edge** projection in sync
+- `GET /sandboxes/{sandbox_id}/nodes` — queryable mirror: `node_id`, `kind` (`agent` | `collector`)
+- `GET /sandboxes/{sandbox_id}/edges` — queryable mirror: `source_id`, `target_id`
+- `GET /sandboxes/{sandbox_id}/runs` — list run history for that sandbox
+
+**Runs**
+
+- `POST /runs` — same `RunRequest` as before; graph is validated before enqueue. Returns `run_id`.
+- `POST /runs/{run_id}/resume` — **only if status is `failed`**; continues from **saved node outputs** using the **current sandbox graph** and optional body `{ "prompt": "override" }`. Same `run_id` and SSE channel as the original run.
+- `GET /runs/{run_id}/events` — SSE. Browsers’ `EventSource` cannot set headers; use **`?access_token=<jwt>`** (or enable `AUTH_DISABLED=1` for local demos).
+- `GET /runs/{run_id}` returns run snapshot (includes optional `collector_output`)
+
+**Health**
+
 - `GET /health` returns service status
+
+### 7.4 Database Schema
+
+The API persists all data to PostgreSQL (or SQLite for local dev). Tables are managed by Alembic migrations.
+
+| Table | Purpose | Key columns |
+|-------|---------|-------------|
+| **`app_user`** | User accounts | `id`, `email` (unique), `hashed_password`, `created_at` |
+| **`sandbox`** | Projects / workspaces | `id`, `name`, `description`, `owner_user_id` → `app_user.id`, `canvas_state` (JSON — full `PipelineGraph`), `created_at`, `updated_at` |
+| **`sandboxnode`** | Queryable mirror of nodes in `canvas_state` | `sandbox_id` → `sandbox.id`, `node_id`, `kind` (`agent` \| `collector`), `data` (JSON) |
+| **`sandboxedge`** | Queryable mirror of edges in `canvas_state` | `sandbox_id` → `sandbox.id`, `source_id`, `target_id` |
+| **`runrecord`** | One row per pipeline execution | `run_id`, `sandbox_id` → `sandbox.id`, `status`, `prompt`, `error`, `collector_output` (JSON), `created_at`, `completed_at` |
+| **`runnodeoutput`** | One row per completed node in a run | `run_id` → `runrecord.run_id`, `node_id`, `output` (JSON) |
+
+**Which endpoints write to which tables:**
+
+| Endpoint | Reads | Writes |
+|----------|-------|--------|
+| `POST /auth/register` | `app_user` | `app_user` |
+| `POST /auth/login` | `app_user` | — |
+| `POST /sandboxes` | — | `sandbox`, `sandboxnode`, `sandboxedge` |
+| `GET /sandboxes` | `sandbox` | — |
+| `GET /sandboxes/{id}` | `sandbox` | — |
+| `PATCH /sandboxes/{id}` | `sandbox` | `sandbox` |
+| `DELETE /sandboxes/{id}` | all tables | deletes from `runnodeoutput`, `runrecord`, `sandboxnode`, `sandboxedge`, `sandbox` |
+| `GET /sandboxes/{id}/graph` | `sandbox` | — |
+| `PATCH /sandboxes/{id}/graph` | `sandbox` | `sandbox`, `sandboxnode`, `sandboxedge` (rebuilt) |
+| `GET /sandboxes/{id}/nodes` | `sandboxnode` | — |
+| `GET /sandboxes/{id}/edges` | `sandboxedge` | — |
+| `GET /sandboxes/{id}/runs` | `runrecord` | — |
+| `POST /runs` | `sandbox` | `runrecord`, `runnodeoutput` (as nodes complete) |
+| `POST /runs/{id}/resume` | `runrecord`, `runnodeoutput`, `sandbox` | `runrecord`, `runnodeoutput` |
+| `GET /runs/{id}` | `runrecord`, `runnodeoutput` | — |
+| `GET /runs/{id}/events` | `runrecord` (permission check) | — (live stream is in-memory) |
+
+### 7.5 Migrations (Alembic)
+
+From the **repository root**:
+
+```bash
+python -m alembic current
+python -m alembic upgrade head
+```
+
+The app also runs `upgrade head` on startup. To add a schema change later: `python -m alembic revision --autogenerate -m "describe"` then commit the new file under `backend_or_api/alembic/versions/`.
+
+### 7.6 Running the Integration Test
+
+With the server running (`AUTH_DISABLED=1`):
+
+```bash
+python _integration_test.py
+```
+
+This exercises: health, sandbox CRUD, graph save/load, node/edge projection, run lifecycle, cascade delete.
 
 ## 8. Deploy to Vercel
 
@@ -112,6 +212,14 @@ npx vercel
 ```
 
 If needed, set the project framework to "Other" and ensure Python serverless support is enabled.
+
+For a **hosted database** (e.g. Vercel Postgres, Neon, Supabase, or Railway Postgres), add Vercel environment variables:
+
+- `DATABASE_URL` — connection string (`postgresql://…` is accepted; the app normalizes it for the `psycopg` driver).
+- `JWT_SECRET` — long random string (required for real auth).
+- Optionally set `AUTH_DISABLED` **unset** or `0` so sandboxes require login.
+
+Ensure the deployment includes **`alembic.ini`** and **`backend_or_api/alembic/`** (the default Git-based Vercel setup does). Without `DATABASE_URL`, SQLite on Vercel does **not** persist across invocations—use Postgres for real demos.
 
 ## 9. How to Use This Repo
 
