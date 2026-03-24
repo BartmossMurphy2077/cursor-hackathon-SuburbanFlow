@@ -1,4 +1,5 @@
 import { validateGraphForRun, withPrompt } from "../lib/graph";
+import { authFetch, sseUrl } from "../lib/api";
 import { useCanvasStore } from "../stores/canvasStore";
 import { useRunStore } from "../stores/runStore";
 
@@ -47,7 +48,7 @@ export function Toolbar() {
 
     let res: Response;
     try {
-      res = await fetch("/runs", {
+      res = await authFetch("/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -73,7 +74,7 @@ export function Toolbar() {
 
     setRunId(data.run_id);
 
-    const es = new EventSource(`/runs/${data.run_id}/events`);
+    const es = new EventSource(sseUrl(`/runs/${data.run_id}/events`));
 
     es.onmessage = (msg) => {
       try {
