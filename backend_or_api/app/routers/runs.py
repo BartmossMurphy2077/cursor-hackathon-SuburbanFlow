@@ -117,18 +117,29 @@ def _build_run_snapshot(session: Session, record: RunRecord) -> RunSnapshot:
 
 
 def _ensure_sandbox(session: Session, sandbox_id: str, user_id: str) -> Sandbox:
-    """Return existing sandbox (with ownership check) or auto-create one.
+    """Return existing sandbox owned by this user, or auto-create one.
 
     The frontend derives sandbox_id from a free-text name field and never
-    calls POST /sandboxes.  Instead of 404-ing we lazily create the sandbox
-    so the run can proceed.  API-created sandboxes still go through the
-    normal ownership validation path.
+    calls POST /sandboxes.  If the exact ID exists and belongs to the current
+    user, return it.  If the ID is taken by another user, look for a sandbox
+    the current user owns with the same *name*, or create a new one with a
+    unique ID.  This prevents cross-user 403 collisions on common names like
+    "my_sandbox".
     """
     row = session.get(Sandbox, sandbox_id)
-    if row is not None:
-        if row.owner_user_id != user_id:
-            raise HTTPException(status_code=403, detail="Not allowed to access this sandbox")
+    if row is not None and row.owner_user_id == user_id:
         return row
+
+    if row is not None:
+        owned = session.exec(
+            select(Sandbox).where(
+                Sandbox.name == sandbox_id,
+                Sandbox.owner_user_id == user_id,
+            )
+        ).first()
+        if owned:
+            return owned
+        sandbox_id = str(uuid.uuid4())
 
     empty_graph = PipelineGraph()
     sandbox = Sandbox(
@@ -209,12 +220,12 @@ async def start_run(
 
     sandbox.canvas_state = graph_json
     session.add(sandbox)
-    sync_sandbox_projection(session, payload.sandbox_id, payload.graph)
+    sync_sandbox_projection(session, sandbox.id, payload.graph)
 
     run_id = str(uuid.uuid4())
     record = RunRecord(
         run_id=run_id,
-        sandbox_id=payload.sandbox_id,
+        sandbox_id=sandbox.id,
         status="pending",
         prompt=payload.prompt,
         graph=graph_json,
