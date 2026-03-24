@@ -5,6 +5,9 @@ export const COLLECTOR_ID = "collector";
 export type AgentData = {
   name: string;
   role: string;
+  provider: "openai" | "anthropic";
+  model: string;
+  temperature: number;
   output_key: string;
   output_type: "text" | "json";
 };
@@ -21,6 +24,9 @@ export type RunRequestPayload = {
       id: string;
       name: string;
       role: string;
+      provider: "openai" | "anthropic";
+      model: string;
+      temperature: number;
       output_key: string;
       output_type: "text" | "json";
     }>;
@@ -128,6 +134,12 @@ export function validateGraphForRun(
         id: n.id,
         name: String(n.data.name ?? "Agent"),
         role: String(n.data.role ?? ""),
+        provider: n.data.provider === "anthropic" ? "anthropic" : "openai",
+        model: String(n.data.model ?? (n.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini")),
+        temperature:
+          typeof n.data.temperature === "number" && Number.isFinite(n.data.temperature)
+            ? Math.min(2, Math.max(0, n.data.temperature))
+            : 0.7,
         output_key: String(n.data.output_key ?? "text"),
         output_type: n.data.output_type === "json" ? "json" : "text",
       })),

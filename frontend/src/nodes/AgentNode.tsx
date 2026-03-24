@@ -35,6 +35,10 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
         </pre>
       ) : null}
       <div className="mt-1 flex gap-2 text-[10px] text-canvas-muted">
+        <span className="rounded bg-indigo-950/70 px-1 py-0.5 font-mono">
+          {data.provider === "anthropic" ? "claude" : "chatgpt"}
+        </span>
+        <span className="rounded bg-slate-800 px-1 py-0.5 font-mono">{data.model}</span>
         <span className="rounded bg-slate-800 px-1 py-0.5 font-mono">{data.output_key}</span>
         <span className="rounded bg-slate-800 px-1 py-0.5 font-mono">{data.output_type}</span>
       </div>

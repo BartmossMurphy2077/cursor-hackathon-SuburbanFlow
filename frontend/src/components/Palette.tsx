@@ -6,6 +6,9 @@ const TEMPLATES: Array<{ label: string; data: Partial<AgentData> }> = [
     data: {
       name: "Researcher",
       role: "Research the topic deeply. Return clear facts and citations.",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      temperature: 0.7,
       output_key: "summary",
       output_type: "text",
     },
@@ -15,6 +18,9 @@ const TEMPLATES: Array<{ label: string; data: Partial<AgentData> }> = [
     data: {
       name: "Writer",
       role: "Turn upstream research into polished prose or a report.",
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514",
+      temperature: 0.7,
       output_key: "report",
       output_type: "text",
     },
@@ -24,6 +30,9 @@ const TEMPLATES: Array<{ label: string; data: Partial<AgentData> }> = [
     data: {
       name: "Critic",
       role: "Review upstream content for gaps, risks, and improvements.",
+      provider: "openai",
+      model: "gpt-4o-mini",
+      temperature: 0.3,
       output_key: "critique",
       output_type: "text",
     },

@@ -4,6 +4,17 @@ import { validateGraphForRun, withPrompt } from "../lib/graph";
 import { useCanvasStore } from "../stores/canvasStore";
 import { useRunStore } from "../stores/runStore";
 
+const MODEL_OPTIONS = {
+  openai: [
+    { value: "gpt-4o-mini", label: "gpt-4o-mini" },
+    { value: "gpt-4o", label: "gpt-4o" },
+  ],
+  anthropic: [
+    { value: "claude-sonnet-4-20250514", label: "claude-sonnet-4" },
+    { value: "claude-3-5-sonnet-latest", label: "claude-3.5-sonnet" },
+  ],
+} as const;
+
 function parseGlobalContext(json: string): Record<string, unknown> {
   try {
     const v = JSON.parse(json || "{}") as unknown;
@@ -66,6 +77,9 @@ export function Inspector() {
     const d = selected.data as {
       name: string;
       role: string;
+      provider: "openai" | "anthropic";
+      model: string;
+      temperature: number;
       output_key: string;
       output_type: string;
     };
@@ -93,6 +107,47 @@ export function Inspector() {
               className="mt-1 min-h-[100px] w-full resize-y rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
               value={d.role}
               onChange={(e) => updateNodeData(selected.id, { role: e.target.value })}
+            />
+          </label>
+          <label className="block text-xs font-medium text-slate-400">
+            Model provider
+            <select
+              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
+              value={d.provider}
+              onChange={(e) => {
+                const provider = e.target.value === "anthropic" ? "anthropic" : "openai";
+                const fallbackModel = MODEL_OPTIONS[provider][0]?.value ?? "";
+                updateNodeData(selected.id, { provider, model: fallbackModel });
+              }}
+            >
+              <option value="openai">ChatGPT (OpenAI)</option>
+              <option value="anthropic">Claude (Anthropic)</option>
+            </select>
+          </label>
+          <label className="block text-xs font-medium text-slate-400">
+            Model
+            <select
+              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
+              value={d.model}
+              onChange={(e) => updateNodeData(selected.id, { model: e.target.value })}
+            >
+              {MODEL_OPTIONS[d.provider].map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs font-medium text-slate-400">
+            Temperature ({typeof d.temperature === "number" ? d.temperature.toFixed(2) : "0.70"})
+            <input
+              className="mt-1 w-full accent-canvas-accent"
+              type="range"
+              min={0}
+              max={2}
+              step={0.1}
+              value={typeof d.temperature === "number" ? d.temperature : 0.7}
+              onChange={(e) => updateNodeData(selected.id, { temperature: Number(e.target.value) })}
             />
           </label>
           <label className="block text-xs font-medium text-slate-400">

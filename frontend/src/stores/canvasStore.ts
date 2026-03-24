@@ -22,6 +22,9 @@ import {
 const defaultAgentData = (): AgentData => ({
   name: "Agent",
   role: "",
+  provider: "openai",
+  model: "gpt-4o-mini",
+  temperature: 0.7,
   output_key: "text",
   output_type: "text",
 });
@@ -35,6 +38,9 @@ function buildInitialNodes(): Node[] {
       data: {
         name: "Researcher",
         role: "Research the topic and produce a concise summary.",
+        provider: "openai",
+        model: "gpt-4o-mini",
+        temperature: 0.7,
         output_key: "summary",
         output_type: "text",
       } satisfies AgentData,
@@ -46,6 +52,9 @@ function buildInitialNodes(): Node[] {
       data: {
         name: "Writer",
         role: "Write a short report using the research summary.",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        temperature: 0.7,
         output_key: "report",
         output_type: "text",
       } satisfies AgentData,
