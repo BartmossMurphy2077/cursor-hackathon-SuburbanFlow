@@ -56,15 +56,16 @@ export function Inspector() {
 
   if (!selected) {
     return (
-      <aside className="flex w-80 shrink-0 flex-col border-l border-canvas-border bg-canvas-panel/95">
-        <div className="border-b border-canvas-border px-3 py-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Inspector</h2>
+      <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+        <div className="ac-panel-header">
+          <h2 className="ac-panel-title">Inspector</h2>
+          <p className="ac-panel-sub">Select a node to edit details</p>
         </div>
-        <div className="flex flex-1 flex-col gap-3 p-3 text-sm text-canvas-muted">
-          <p>Select a node to edit its configuration.</p>
+        <div className="flex flex-1 flex-col gap-4 p-4 text-sm text-slate-400">
+          <p className="leading-relaxed">Click any agent or the collector on the canvas.</p>
           <div>
-            <div className="mb-1 text-xs font-semibold uppercase text-slate-500">Run payload preview</div>
-            <pre className="max-h-48 overflow-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] text-slate-400">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Payload preview</div>
+            <pre className="max-h-52 overflow-auto rounded-xl border border-canvas-border bg-black/35 p-3 font-mono text-[10px] leading-relaxed text-slate-400 shadow-inner">
               {validation.ok ? payloadPreview : validation.error}
             </pre>
           </div>
@@ -87,32 +88,28 @@ export function Inspector() {
     const live = streamText[selected.id];
 
     return (
-      <aside className="flex w-80 shrink-0 flex-col border-l border-canvas-border bg-canvas-panel/95">
-        <div className="border-b border-canvas-border px-3 py-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Agent</h2>
-          <p className="truncate font-mono text-[11px] text-canvas-muted">{selected.id}</p>
+      <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+        <div className="ac-panel-header">
+          <h2 className="ac-panel-title">Agent</h2>
+          <p className="truncate font-mono text-[10px] text-slate-500">{selected.id}</p>
         </div>
-        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-          <label className="block text-xs font-medium text-slate-400">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <label className="ac-label">
             Name
-            <input
-              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
-              value={d.name}
-              onChange={(e) => updateNodeData(selected.id, { name: e.target.value })}
-            />
+            <input className="ac-input" value={d.name} onChange={(e) => updateNodeData(selected.id, { name: e.target.value })} />
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Role / prompt
             <textarea
-              className="mt-1 min-h-[100px] w-full resize-y rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
+              className="ac-input min-h-[104px] resize-y"
               value={d.role}
               onChange={(e) => updateNodeData(selected.id, { role: e.target.value })}
             />
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Model provider
             <select
-              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
+              className="ac-input"
               value={d.provider}
               onChange={(e) => {
                 const provider = e.target.value === "anthropic" ? "anthropic" : "openai";
@@ -124,13 +121,9 @@ export function Inspector() {
               <option value="anthropic">Claude (Anthropic)</option>
             </select>
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Model
-            <select
-              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
-              value={d.model}
-              onChange={(e) => updateNodeData(selected.id, { model: e.target.value })}
-            >
+            <select className="ac-input" value={d.model} onChange={(e) => updateNodeData(selected.id, { model: e.target.value })}>
               {MODEL_OPTIONS[d.provider].map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
@@ -138,10 +131,10 @@ export function Inspector() {
               ))}
             </select>
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Temperature ({typeof d.temperature === "number" ? d.temperature.toFixed(2) : "0.70"})
             <input
-              className="mt-1 w-full accent-canvas-accent"
+              className="mt-2 h-2 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-canvas-accent [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-canvas-accent [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(45,212,191,0.5)]"
               type="range"
               min={0}
               max={2}
@@ -150,18 +143,18 @@ export function Inspector() {
               onChange={(e) => updateNodeData(selected.id, { temperature: Number(e.target.value) })}
             />
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Output key
             <input
-              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 font-mono text-sm text-slate-100"
+              className="ac-input font-mono text-xs"
               value={d.output_key}
               onChange={(e) => updateNodeData(selected.id, { output_key: e.target.value })}
             />
           </label>
-          <label className="block text-xs font-medium text-slate-400">
+          <label className="ac-label">
             Output type
             <select
-              className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
+              className="ac-input"
               value={d.output_type}
               onChange={(e) =>
                 updateNodeData(selected.id, { output_type: e.target.value === "json" ? "json" : "text" })
@@ -173,8 +166,8 @@ export function Inspector() {
           </label>
           {(live || out) && (
             <div>
-              <div className="mb-1 text-xs font-semibold uppercase text-slate-500">Last run</div>
-              <pre className="max-h-40 overflow-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] text-slate-300">
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Last run</div>
+              <pre className="max-h-44 overflow-auto rounded-xl border border-canvas-border bg-black/35 p-3 font-mono text-[10px] leading-relaxed text-slate-300 shadow-inner">
                 {JSON.stringify(out ?? (live ? { stream: live } : {}), null, 2)}
               </pre>
             </div>
@@ -184,27 +177,23 @@ export function Inspector() {
     );
   }
 
-  /* collector */
   const cd = selected.data as { name: string };
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-canvas-border bg-canvas-panel/95">
-      <div className="border-b border-canvas-border px-3 py-2">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-300">Collector</h2>
+    <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+      <div className="ac-panel-header border-canvas-accent/20 bg-gradient-to-r from-canvas-accent/10 to-transparent">
+        <h2 className="ac-panel-title text-canvas-accent">Collector</h2>
+        <p className="ac-panel-sub">Terminal merge for this run</p>
       </div>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
-        <label className="block text-xs font-medium text-slate-400">
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+        <label className="ac-label">
           Name
-          <input
-            className="mt-1 w-full rounded-lg border border-canvas-border bg-canvas-bg px-2 py-1.5 text-sm text-slate-100"
-            value={cd.name}
-            onChange={(e) => updateNodeData(selected.id, { name: e.target.value })}
-          />
+          <input className="ac-input" value={cd.name} onChange={(e) => updateNodeData(selected.id, { name: e.target.value })} />
         </label>
         <div>
-          <div className="mb-1 text-xs font-semibold uppercase text-slate-500">Final output</div>
-          <pre className="max-h-64 overflow-auto rounded-lg bg-black/40 p-2 font-mono text-[10px] text-slate-300">
-            {collectorOutput != null ? JSON.stringify(collectorOutput, null, 2) : "Run the pipeline to see merged output."}
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Final output</div>
+          <pre className="max-h-[min(22rem,50vh)] overflow-auto rounded-xl border border-canvas-border bg-black/35 p-3 font-mono text-[10px] leading-relaxed text-slate-300 shadow-inner">
+            {collectorOutput != null ? JSON.stringify(collectorOutput, null, 2) : "Run the pipeline to merge upstream outputs here."}
           </pre>
         </div>
       </div>

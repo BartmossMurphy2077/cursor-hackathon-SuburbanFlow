@@ -17,8 +17,9 @@ export function Toast() {
   return (
     <div
       role="status"
-      className="pointer-events-none fixed bottom-4 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-lg border border-amber-900/80 bg-amber-950/95 px-4 py-2 text-center text-sm text-amber-100 shadow-lg"
+      className="pointer-events-none fixed bottom-5 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-xl border border-white/10 bg-canvas-elevated/95 px-5 py-3 text-center text-sm text-slate-200 shadow-bar backdrop-blur-xl ring-1 ring-white/5"
     >
+      <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
       {toast}
     </div>
   );

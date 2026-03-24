@@ -10,17 +10,47 @@ body,
 }
 
 body {
-  @apply bg-canvas-bg text-slate-100 antialiased;
+  @apply bg-canvas-bg bg-app-radial bg-fixed text-canvas-ink antialiased;
 }
 
 .react-flow__background {
-  @apply bg-canvas-bg;
+  @apply bg-transparent;
 }
 
 .react-flow__controls {
-  @apply rounded-lg border border-canvas-border bg-canvas-panel shadow-lg;
+  @apply overflow-hidden rounded-xl border border-canvas-border bg-canvas-elevated/90 shadow-bar backdrop-blur-md;
 }
 
 .react-flow__controls-button {
-  @apply border-canvas-border bg-canvas-panel fill-slate-300;
+  @apply border-canvas-border bg-transparent fill-slate-400 transition hover:bg-white/5 hover:fill-slate-200;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(9, 11, 15, 0.65);
+}
+
+.react-flow__minimap {
+  @apply rounded-lg;
+}
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+@layer components {
+  .ac-input {
+    @apply mt-1 w-full rounded-lg border border-canvas-border bg-black/25 px-2.5 py-1.5 text-sm text-canvas-ink shadow-inner transition placeholder:text-slate-500 focus:border-canvas-accent/40 focus:outline-none focus:ring-2 focus:ring-canvas-accent/15;
+  }
+  .ac-label {
+    @apply block text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+  }
+  .ac-panel-header {
+    @apply border-b border-canvas-border px-4 py-3;
+  }
+  .ac-panel-title {
+    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400;
+  }
+  .ac-panel-sub {
+    @apply mt-1 text-[11px] text-slate-500;
+  }
 }

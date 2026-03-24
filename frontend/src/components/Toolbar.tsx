@@ -1,12 +1,8 @@
-import { authFetch, sseUrl } from "../lib/api";
 import { validateGraphForRun, withPrompt } from "../lib/graph";
-import { useAuthStore } from "../stores/authStore";
 import { useCanvasStore } from "../stores/canvasStore";
 import { useRunStore } from "../stores/runStore";
 
 export function Toolbar() {
-  const email = useAuthStore((s) => s.email);
-  const logout = useAuthStore((s) => s.logout);
   const sandboxName = useCanvasStore((s) => s.sandboxName);
   const setSandboxName = useCanvasStore((s) => s.setSandboxName);
   const prompt = useCanvasStore((s) => s.prompt);
@@ -51,7 +47,7 @@ export function Toolbar() {
 
     let res: Response;
     try {
-      res = await authFetch("/runs", {
+      res = await fetch("/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -77,7 +73,7 @@ export function Toolbar() {
 
     setRunId(data.run_id);
 
-    const es = new EventSource(sseUrl(`/runs/${data.run_id}/events`));
+    const es = new EventSource(`/runs/${data.run_id}/events`);
 
     es.onmessage = (msg) => {
       try {
@@ -105,32 +101,38 @@ export function Toolbar() {
   };
 
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-canvas-border bg-canvas-panel/95 px-3 py-2">
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-bold tracking-tight text-slate-100">AgentCanvas</span>
-        <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-medium uppercase text-slate-400">MVP</span>
+    <header className="relative z-20 flex shrink-0 flex-wrap items-center gap-3 border-b border-canvas-border bg-canvas-elevated/80 px-4 py-3 shadow-bar backdrop-blur-xl">
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-canvas-accent/25 to-sky-500/10 shadow-panel ring-1 ring-white/10">
+          <span className="font-mono text-sm font-bold text-canvas-accent">◇</span>
+        </div>
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[15px] font-semibold tracking-tight text-white">AgentCanvas</span>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+              MVP
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-500">Visual pipeline · local run</span>
+        </div>
       </div>
-      <label className="flex min-w-[120px] max-w-[200px] flex-col text-[10px] font-medium uppercase text-slate-500">
+      <label className="ac-label flex min-w-[120px] max-w-[200px] flex-col normal-case">
         Sandbox
-        <input
-          className="mt-0.5 rounded border border-canvas-border bg-canvas-bg px-2 py-1 text-sm font-normal normal-case text-slate-100"
-          value={sandboxName}
-          onChange={(e) => setSandboxName(e.target.value)}
-        />
+        <input className="ac-input normal-case" value={sandboxName} onChange={(e) => setSandboxName(e.target.value)} />
       </label>
-      <label className="flex min-w-[180px] flex-1 flex-col text-[10px] font-medium uppercase text-slate-500">
+      <label className="ac-label flex min-w-[180px] flex-1 flex-col normal-case">
         Global prompt
         <input
-          className="mt-0.5 rounded border border-canvas-border bg-canvas-bg px-2 py-1 text-sm font-normal normal-case text-slate-100"
+          className="ac-input normal-case"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Task for the pipeline…"
+          placeholder="What should this graph accomplish?"
         />
       </label>
-      <label className="flex w-40 flex-col text-[10px] font-medium uppercase text-slate-500">
+      <label className="ac-label flex w-44 flex-col font-mono normal-case">
         Context JSON
         <input
-          className="mt-0.5 rounded border border-canvas-border bg-canvas-bg px-2 py-1 font-mono text-xs font-normal normal-case text-slate-100"
+          className="ac-input font-mono text-xs normal-case"
           value={globalContextJson}
           onChange={(e) => setGlobalContextJson(e.target.value)}
           title="global_context object sent with the run"
@@ -140,7 +142,7 @@ export function Toolbar() {
         <button
           type="button"
           onClick={() => loadDemo()}
-          className="rounded-lg border border-canvas-border bg-canvas-bg px-3 py-1.5 text-sm text-slate-300 hover:bg-slate-800"
+          className="rounded-lg border border-canvas-border bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-slate-300 shadow-panel transition hover:bg-white/[0.06] hover:text-white"
         >
           Reset demo
         </button>
@@ -148,18 +150,9 @@ export function Toolbar() {
           type="button"
           disabled={isRunning}
           onClick={() => void runPipeline()}
-          className="rounded-lg bg-canvas-accent px-4 py-1.5 text-sm font-semibold text-white shadow hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-gradient-to-r from-canvas-accent-dim to-canvas-accent px-5 py-2 text-sm font-semibold text-canvas-bg shadow-[0_0_24px_rgba(45,212,191,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
           {isRunning ? "Running…" : "Run pipeline"}
-        </button>
-        <div className="mx-1 h-6 w-px bg-canvas-border" />
-        {email && <span className="text-xs text-slate-400">{email}</span>}
-        <button
-          type="button"
-          onClick={logout}
-          className="rounded-lg border border-canvas-border bg-canvas-bg px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-        >
-          Logout
         </button>
       </div>
     </header>
