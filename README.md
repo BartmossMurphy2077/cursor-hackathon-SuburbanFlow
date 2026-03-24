@@ -55,31 +55,84 @@ Projects will be evaluated based on the rubric in [CHALLENGE.md](./CHALLENGE.md)
 5. Use of tools to extend what was possible
 6. Presentation and storytelling
 
-## 6. How to Use This Repo
+## 6. AgentCanvas MVP Architecture
 
-### 6.1 Clone the repository
+This repository now includes an MVP implementation path for AgentCanvas that fits hackathon constraints:
+
+- Vercel-compatible API entrypoint via `api/index.py`
+- FastAPI runtime and typed contracts with Pydantic in `backend_or_api/app/`
+- SSE event stream for live node progress and token chunks
+- Minimal DAG executor with parallel execution for independent node layers
+- JSON schema artifact for run payload in `schemas/run_request.schema.json`
+
+The event contract used by the UI is:
+
+- `node_start`
+- `token_chunk`
+- `node_complete`
+- `node_error`
+- `run_complete`
+
+This keeps the frontend transport-agnostic and compatible with a later migration to full FastAPI + Docker + optional WebSockets.
+
+## 7. Local Development
+
+### 7.1 Run with Python
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r backend_or_api/requirements.txt
+uvicorn backend_or_api.app.main:app --reload
+```
+
+Open [http://localhost:8000](http://localhost:8000).
+
+### 7.2 Run with Docker
+
+```bash
+docker compose up --build
+```
+
+Open [http://localhost:8000](http://localhost:8000).
+
+### 7.3 API Endpoints
+
+- `POST /runs` starts a run and returns `run_id`
+- `GET /runs/{run_id}/events` streams SSE updates
+- `GET /runs/{run_id}` returns run snapshot state
+- `GET /health` returns service status
+
+## 8. Deploy to Vercel
+
+The repository includes `vercel.json` and `api/index.py` for Vercel deployment:
+
+```bash
+npx vercel
+```
+
+If needed, set the project framework to "Other" and ensure Python serverless support is enabled.
+
+## 9. How to Use This Repo
+
+### 9.1 Clone the repository
 
 ```bash
 git clone <YOUR_REPO_URL>
 cd <YOUR_REPO_NAME>
 ```
 
-### 6.2 Build your project
+### 9.2 Build your project
 
 Use this starter however you want. You can adapt it, replace it, or extend it to match your idea.
 
 Your goal is to create a project that clearly demonstrates your solution and can be accessed through a live URL.
 
-### 6.3 Run locally
+### 9.3 Run locally
 
-Install dependencies and start the development server:
+Use either Python or Docker instructions from sections above.
 
-```bash
-npm install
-npm run dev
-```
-
-### 6.4 Deploy to Vercel
+### 9.4 Deploy to Vercel
 
 Your final project must be live on Vercel.
 
@@ -93,7 +146,7 @@ You can also connect your GitHub repository directly to Vercel and deploy from t
 
 Before submitting, make sure the deployment link works, the project loads correctly, and the core functionality is accessible to judges.
 
-## 7. Submission
+## 10. Submission
 
 Once your project is deployed, submit it through the Google Form:
 
@@ -109,7 +162,7 @@ Your submission should include the following:
 
 Only submitted projects with a working deployed link will be considered.
 
-## 8. Presentation
+## 11. Presentation
 
 After submitting, your team will present the project live.
 
@@ -122,13 +175,13 @@ Your presentation should clearly communicate four things:
 
 This is not only about showing features. It is also about showing your reasoning, your interpretation of the challenge, and the story behind the project.
 
-## 9. Included Resources
+## 12. Included Resources
 
 1. [Challenge brief and rubric](./CHALLENGE.md)
 2. [Practical tips](./resources/tips.md)
-3. [Starter project](./starter/)
+3. [Architecture and implementation idea](./IDEA.md)
 
-## 10. Final Reminder
+## 13. Final Reminder
 
 Build something focused.
 

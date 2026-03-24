@@ -293,9 +293,37 @@ The most powerful and extensible architecture. Agent orchestration is handled by
 
 ## 6. Chosen Architecture
 
-**Architecture C (FastAPI + PydanticAI + WebSockets)** is the selected approach.
+**Long-term target:** Architecture C (FastAPI + PydanticAI + WebSockets).  
+**Hackathon MVP variant:** Vercel-first API + SSE + Pydantic contracts.
 
-It hits the right balance: PydanticAI gives structured, typed agent outputs and first-class MCP + judge support out of the box; FastAPI's async model makes the DAG executor clean and parallel execution natural; and the stack deploys anywhere without platform lock-in. The only piece that needs to be custom-built is the DAG executor, which is a feature, not a burden — it means full control over execution semantics (retry logic, partial re-runs, streaming granularity) without being constrained by an opinionated framework.
+The team still prefers the Architecture C model for long-term growth, but the MVP implementation is adapted to the hackathon requirement of a live Vercel deployment:
+
+- FastAPI-compatible backend logic with Pydantic models is kept in a Python service layer
+- Vercel entrypoint serves the API surface for MVP deployment
+- Live updates use SSE event streaming instead of WebSockets for simpler, lower-risk implementation
+- DAG execution remains async and supports parallel execution of independent node layers
+
+This keeps the product aligned with Architecture C semantics while reducing delivery risk and infra complexity for demo day.
+
+### 6.1 MVP Runtime Contract
+
+MVP run events (transport-agnostic, used by frontend regardless of backend host/runtime):
+
+- `node_start`
+- `token_chunk`
+- `node_complete`
+- `node_error`
+- `run_complete`
+
+This contract allows migration to full WebSocket transport later without rewriting core UI state logic.
+
+### 6.2 Migration Path to Full Architecture C
+
+1. Keep Pydantic node input/output models as the source of truth.
+2. Keep DAG executor semantics unchanged (topology + parallel branch execution).
+3. Swap SSE transport to WebSockets only when bidirectional live control is needed.
+4. Move deployment from Vercel runtime to Dockerized FastAPI service once longer runs or richer orchestration are required.
+5. Add persistent run checkpointing when resumability becomes a product requirement.
 
 The other architectures remain documented for reference. Architecture B (Celery) becomes relevant if run volumes grow large enough to need horizontally scaled workers. Architecture D (LangGraph) becomes relevant if conditional branching and cycle support become critical product features.
 

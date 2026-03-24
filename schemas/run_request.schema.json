@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RunRequest",
+  "type": "object",
+  "required": ["sandbox_id", "graph", "prompt"],
+  "properties": {
+    "sandbox_id": { "type": "string" },
+    "prompt": { "type": "string" },
+    "graph": {
+      "type": "object",
+      "required": ["nodes", "edges", "collector", "global_context"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "role", "output_key", "output_type"],
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "role": { "type": "string" },
+              "output_key": { "type": "string" },
+              "output_type": { "enum": ["text", "json"] }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target"],
+            "properties": {
+              "source": { "type": "string" },
+              "target": { "type": "string" }
+            }
+          }
+        },
+        "collector": {
+          "type": "object",
+          "required": ["id", "name", "kind"],
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "kind": { "const": "collector" }
+          }
+        },
+        "global_context": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
