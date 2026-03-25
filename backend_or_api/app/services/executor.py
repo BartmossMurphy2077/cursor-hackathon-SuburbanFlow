@@ -12,6 +12,73 @@ from .dag import node_map, topological_layers, upstream_outputs
 OnEvent = Callable[[dict[str, Any]], Awaitable[None]]
 
 
+def _collector_direct_inputs(
+    graph: PipelineGraph,
+    outputs: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    direct: dict[str, dict[str, Any]] = {}
+    for edge in graph.edges:
+        if edge.target == graph.collector.id and edge.source in outputs:
+            direct[edge.source] = outputs[edge.source]
+    return direct
+
+
+async def _run_collector(
+    *,
+    graph: PipelineGraph,
+    outputs: dict[str, dict[str, Any]],
+    prompt: str,
+    settings: Settings,
+    on_event: OnEvent,
+) -> dict[str, Any]:
+    collector_cfg = graph.collector
+    direct_inputs = _collector_direct_inputs(graph, outputs)
+
+    collector_node = AgentNode(
+        id=collector_cfg.id,
+        name=collector_cfg.name,
+        role=collector_cfg.role,
+        provider=collector_cfg.provider,
+        model=collector_cfg.model,
+        output_key=collector_cfg.output_key,
+        output_type=collector_cfg.output_type,
+        temperature=collector_cfg.temperature,
+    )
+    collector_agent = create_sandbox_agent(collector_node, settings)
+
+    await on_event({"type": "node_start", "node_id": collector_node.id})
+    await on_event(
+        {
+            "type": "node_input",
+            "node_id": collector_node.id,
+            "input": {
+                "user_prompt": prompt,
+                "direct_inputs": direct_inputs,
+                "global_context": graph.global_context,
+                "assembled_message": collector_agent._build_user_message(prompt, direct_inputs, graph.global_context),
+            },
+        }
+    )
+
+    async def on_chunk(text: str) -> None:
+        await on_event({"type": "token_chunk", "node_id": collector_node.id, "chunk": text})
+
+    summary_output = await collector_agent.run(
+        user_prompt=prompt,
+        upstream_outputs=direct_inputs,
+        global_context=graph.global_context,
+        on_chunk=on_chunk,
+    )
+
+    await on_event({"type": "node_complete", "node_id": collector_node.id, "output": summary_output})
+
+    return {
+        "summary": summary_output,
+        "direct_inputs": direct_inputs,
+        "reference_outputs": outputs,
+    }
+
+
 async def _run_node_with_optional_judge(
     *,
     graph: PipelineGraph,
@@ -155,6 +222,13 @@ async def run_dag_pipeline(
     for layer in layers:
         await asyncio.gather(*(run_single(node_id) for node_id in layer))
 
-    collector_output = {"final": outputs, "graph": graph.model_dump()}
+    collector_output = await _run_collector(
+        graph=graph,
+        outputs=outputs,
+        prompt=prompt,
+        settings=settings,
+        on_event=on_event,
+    )
+
     await on_event({"type": "run_complete", "collector_output": collector_output})
     return outputs, judge_history

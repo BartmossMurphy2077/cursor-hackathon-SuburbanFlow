@@ -14,6 +14,12 @@ export type AgentData = {
 
 export type CollectorData = {
   name: string;
+  role: string;
+  provider: "openai" | "anthropic";
+  model: string;
+  temperature: number;
+  output_key: string;
+  output_type: "text" | "json";
 };
 
 export type RunRequestPayload = {
@@ -31,7 +37,17 @@ export type RunRequestPayload = {
       output_type: "text" | "json";
     }>;
     edges: Array<{ source: string; target: string }>;
-    collector: { id: string; name: string; kind: "collector" };
+    collector: {
+      id: string;
+      name: string;
+      kind: "collector";
+      role: string;
+      provider: "openai" | "anthropic";
+      model: string;
+      temperature: number;
+      output_key: string;
+      output_type: "text" | "json";
+    };
     global_context: Record<string, unknown>;
   };
 };
@@ -44,13 +60,17 @@ export function getAgentNodeIds(nodes: Node[]): Set<string> {
   return ids;
 }
 
-/**
- * Agent→agent edges only (API contract). Drops edges to/from collector.
- */
-export function getApiEdges(edges: Edge[], agentIds: Set<string>): Array<{ source: string; target: string }> {
+export function getApiEdges(
+  edges: Edge[],
+  agentIds: Set<string>,
+  collectorId: string,
+): Array<{ source: string; target: string }> {
   const out: Array<{ source: string; target: string }> = [];
   for (const e of edges) {
-    if (agentIds.has(e.source) && agentIds.has(e.target)) {
+    const sourceIsAgent = agentIds.has(e.source);
+    const targetIsAgent = agentIds.has(e.target);
+    const targetIsCollector = e.target === collectorId;
+    if (sourceIsAgent && (targetIsAgent || targetIsCollector)) {
       out.push({ source: e.source, target: e.target });
     }
   }
@@ -120,10 +140,19 @@ export function validateGraphForRun(
   }
 
   const agentIds = getAgentNodeIds(nodes);
-  const apiEdges = getApiEdges(edges, agentIds);
+  const apiEdges = getApiEdges(edges, agentIds, collector.id);
+  const agentOnlyEdges = apiEdges.filter((e) => agentIds.has(e.source) && agentIds.has(e.target));
 
-  if (hasCycleInAgentGraph(agentIds, apiEdges)) {
+  if (hasCycleInAgentGraph(agentIds, agentOnlyEdges)) {
     return { ok: false, error: "Graph has a cycle. Remove edges until the agent graph is a DAG." };
+  }
+
+  const collectorInputs = apiEdges.filter((e) => e.target === collector.id);
+  if (collectorInputs.length === 0) {
+    return {
+      ok: false,
+      error: "Collector must have at least one direct incoming edge from an agent.",
+    };
   }
 
   const payload: RunRequestPayload = {
@@ -148,6 +177,21 @@ export function validateGraphForRun(
         id: collector.id,
         name: String(collector.data.name ?? "Collector"),
         kind: "collector",
+        role: String(
+          collector.data.role ??
+            "Synthesize the directly connected agent outputs into one coherent final report.",
+        ),
+        provider: collector.data.provider === "anthropic" ? "anthropic" : "openai",
+        model: String(
+          collector.data.model ??
+            (collector.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini"),
+        ),
+        temperature:
+          typeof collector.data.temperature === "number" && Number.isFinite(collector.data.temperature)
+            ? Math.min(2, Math.max(0, collector.data.temperature))
+            : 0.4,
+        output_key: String(collector.data.output_key ?? "final_report"),
+        output_type: collector.data.output_type === "json" ? "json" : "text",
       },
       global_context: globalContext,
     },

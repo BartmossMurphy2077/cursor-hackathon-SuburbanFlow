@@ -90,11 +90,13 @@ function FlowCanvasInner() {
         maxZoom={1.5}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#334155" />
+        <Background variant={BackgroundVariant.Dots} gap={22} size={1.15} color="rgba(148,163,184,0.12)" />
         <Controls showInteractive={false} />
         <MiniMap
-          className="!bg-canvas-panel !border !border-canvas-border"
-          nodeStrokeWidth={3}
+          className="!overflow-hidden !rounded-xl !border !border-canvas-border !bg-canvas-elevated/90 !shadow-bar"
+          maskColor="rgba(9,11,15,0.85)"
+          nodeColor={() => "rgba(45,212,191,0.35)"}
+          nodeStrokeWidth={2}
           zoomable
           pannable
         />

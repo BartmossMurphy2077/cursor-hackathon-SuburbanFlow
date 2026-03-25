@@ -12,26 +12,42 @@ export function CollectorNode({ data, selected }: NodeProps<CollectorRFNode>) {
 
   return (
     <div
-      className={`min-w-[200px] rounded-xl border bg-gradient-to-br from-indigo-950/80 to-canvas-panel px-3 py-2 shadow-lg ${
-        selected ? "border-indigo-400 ring-2 ring-indigo-400/30" : "border-indigo-900/80"
+      className={`relative min-w-[208px] overflow-hidden rounded-2xl border bg-gradient-to-br from-canvas-accent/15 via-canvas-elevated to-black/40 px-3.5 py-3 shadow-node backdrop-blur-sm transition-all ${
+        selected ? "border-canvas-accent/45 shadow-node-selected" : "border-canvas-border hover:border-canvas-accent/25"
       }`}
     >
-      <Handle type="target" position={Position.Left} className="!h-3 !w-3 !border-2 !bg-indigo-400" />
-      <div className="flex items-center gap-2">
-        <span className="text-lg">◇</span>
-        <div>
-          <div className="text-xs font-bold uppercase tracking-wide text-indigo-300">Collector</div>
-          <div className="text-sm font-medium text-slate-100">{data.name}</div>
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-canvas-accent/60 to-transparent"
+        aria-hidden
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-3 !w-3 !border-2 !border-canvas-accent/40 !bg-canvas-elevated"
+      />
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-canvas-accent/15 font-mono text-sm text-canvas-accent ring-1 ring-canvas-accent/25">
+          ◇
+        </span>
+        <div className="min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-canvas-accent">Collector</div>
+          <div className="truncate text-sm font-semibold text-white">{data.name}</div>
         </div>
       </div>
-      <p className="mt-2 text-xs text-slate-400">Merges upstream agent outputs into the final run result.</p>
-      <div className="mt-2 flex items-center gap-2">
+      <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+        Merges upstream outputs into the final assembled result for this run.
+      </p>
+      <div className="mt-3 flex items-center gap-2">
         {running ? (
-          <span className="text-[10px] font-medium uppercase text-amber-400">Running…</span>
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-500/25">
+            Running
+          </span>
         ) : done ? (
-          <span className="text-[10px] font-medium uppercase text-emerald-400">Result ready</span>
+          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-500/25">
+            Ready
+          </span>
         ) : (
-          <span className="text-[10px] text-canvas-muted">Idle</span>
+          <span className="text-[10px] text-slate-500">Idle</span>
         )}
       </div>
     </div>

@@ -18,19 +18,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function CanvasLayout() {
   return (
-    <div className="flex h-full flex-col">
-      <Toolbar />
-      <div className="flex min-h-0 flex-1">
-        <Palette />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1">
-            <FlowCanvas />
+    <div className="relative flex h-full flex-col">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        aria-hidden
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        <Toolbar />
+        <div className="flex min-h-0 flex-1">
+          <Palette />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="relative min-h-0 flex-1">
+              <FlowCanvas />
+            </div>
+            <EventsLog />
           </div>
-          <EventsLog />
+          <Inspector />
         </div>
-        <Inspector />
+        <Toast />
       </div>
-      <Toast />
     </div>
   );
 }

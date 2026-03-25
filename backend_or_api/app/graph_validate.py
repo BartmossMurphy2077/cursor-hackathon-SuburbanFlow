@@ -20,6 +20,8 @@ def validate_pipeline_graph(graph: PipelineGraph) -> None:
     collector = graph.collector
     all_ids = node_ids | {collector.id}
 
+    collector_incoming = 0
+
     for e in graph.edges:
         if e.source == e.target:
             _http422(f"Edge cannot be self-loop: {e.source}")
@@ -27,6 +29,17 @@ def validate_pipeline_graph(graph: PipelineGraph) -> None:
             _http422(f"Edge source not found: {e.source}")
         if e.target not in all_ids:
             _http422(f"Edge target not found: {e.target}")
+
+        if e.source == collector.id:
+            _http422("Collector cannot be an edge source")
+
+        if e.target == collector.id:
+            if e.source not in node_ids:
+                _http422("Collector can only receive edges from agent nodes")
+            collector_incoming += 1
+
+    if collector_incoming == 0:
+        _http422("Collector must have at least one direct incoming edge")
 
     try:
         from .services.dag import topological_layers

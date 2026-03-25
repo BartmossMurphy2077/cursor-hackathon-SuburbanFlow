@@ -63,7 +63,15 @@ function buildInitialNodes(): Node[] {
       id: COLLECTOR_ID,
       type: "collector",
       position: { x: 720, y: 120 },
-      data: { name: "Collector" } satisfies CollectorData,
+      data: {
+        name: "Collector",
+        role: "Summarize the directly connected agent outputs into a clear final report.",
+        provider: "anthropic",
+        model: "claude-sonnet-4-20250514",
+        temperature: 0.4,
+        output_key: "final_report",
+        output_type: "text",
+      } satisfies CollectorData,
     },
   ];
 }
@@ -127,7 +135,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     }
     if (sourceN.type === "agent" && targetN.type === "agent") {
       const agentIds = getAgentNodeIds(nodes);
-      const apiEdges = getApiEdges(edges, agentIds);
+      const apiEdges = getApiEdges(edges, agentIds, COLLECTOR_ID);
       if (wouldCreateCycle(apiEdges, { source: conn.source, target: conn.target }, agentIds)) {
         get().showToast("That connection would create a cycle.");
         return;
@@ -172,7 +180,15 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           id: COLLECTOR_ID,
           type: "collector",
           position: pos,
-          data: { name: "Collector" } satisfies CollectorData,
+          data: {
+            name: "Collector",
+            role: "Summarize the directly connected agent outputs into a clear final report.",
+            provider: "anthropic",
+            model: "claude-sonnet-4-20250514",
+            temperature: 0.4,
+            output_key: "final_report",
+            output_type: "text",
+          } satisfies CollectorData,
         },
       ],
       selectedId: COLLECTOR_ID,

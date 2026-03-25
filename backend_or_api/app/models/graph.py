@@ -15,7 +15,7 @@ class Edge(BaseModel):
 
 
 class AgentNode(BaseModel):
-    """Canvas agent node → builds a typed sandbox agent at run time."""
+    """Canvas agent node -> builds a typed sandbox agent at run time."""
 
     id: str
     name: str
@@ -35,6 +35,12 @@ class CollectorNode(BaseModel):
     id: str = "collector"
     name: str = "Collector"
     kind: Literal["collector"] = "collector"
+    role: str = "Synthesize the directly connected agent outputs into one coherent final report."
+    provider: Literal["anthropic", "openai"] = "anthropic"
+    model: Optional[str] = None
+    output_key: str = "final_report"
+    output_type: Literal["text", "json"] = "text"
+    temperature: float = Field(default=0.4, ge=0.0, le=2.0)
 
 
 class PipelineGraph(BaseModel):
