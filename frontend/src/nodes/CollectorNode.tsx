@@ -18,7 +18,7 @@ export function CollectorNode({ data, selected }: NodeProps<CollectorRFNode>) {
         selected ? "border-canvas-accent/45 shadow-node-selected" : "hover:border-[var(--ac-accent)]"
       }`}
       style={{
-        borderColor: selected ? undefined : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)",
+        borderColor: selected ? undefined : isDark ? "rgba(45,212,191,0.25)" : "rgba(0,0,0,0.12)",
         backgroundColor: isDark ? "#0f1219" : "#ffffff",
         backgroundImage: isDark
           ? "linear-gradient(135deg, rgba(45,212,191,0.08), #141a24, #0b0e14)"
@@ -42,10 +42,10 @@ export function CollectorNode({ data, selected }: NodeProps<CollectorRFNode>) {
         </span>
         <div className="min-w-0">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-canvas-accent">Collector</div>
-          <div className="truncate text-sm font-semibold" style={{ color: "var(--ac-ink)" }}>{data.name}</div>
+          <div className="truncate text-sm font-semibold" style={{ color: isDark ? "#f1f5f9" : "#1e293b" }}>{data.name}</div>
         </div>
       </div>
-      <p className="mt-2 text-[11px] leading-relaxed" style={{ color: "var(--ac-muted)" }}>
+      <p className="mt-2 text-[11px] leading-relaxed" style={{ color: isDark ? "#cbd5e1" : "#64748b" }}>
         Merges upstream outputs into the final assembled result for this run.
       </p>
       <div className="mt-3 flex items-center gap-2">
@@ -58,7 +58,7 @@ export function CollectorNode({ data, selected }: NodeProps<CollectorRFNode>) {
             Ready
           </span>
         ) : (
-          <span className="text-[10px] text-slate-500">Idle</span>
+          <span className="text-[10px]" style={{ color: isDark ? "#64748b" : "#94a3b8" }}>Idle</span>
         )}
       </div>
     </div>

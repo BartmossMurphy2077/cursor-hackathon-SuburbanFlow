@@ -48,7 +48,7 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
         selected ? "border-canvas-accent/50 shadow-node-selected" : "hover:border-[var(--ac-accent)]"
       }`}
       style={{
-        borderColor: selected ? undefined : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)",
+        borderColor: selected ? undefined : isDark ? "rgba(45,212,191,0.25)" : "rgba(0,0,0,0.12)",
         backgroundColor: isDark ? "#0f1219" : "#ffffff",
         backgroundImage: isDark
           ? "linear-gradient(to bottom, #141a24, #0b0e14)"
@@ -75,19 +75,23 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
       </Handle>
 
       {/* Header — fixed */}
-      <div className="flex items-center gap-2.5 pb-2.5" style={{ borderBottom: "1px solid var(--ac-border)" }}>
+      <div className="flex items-center gap-2.5 pb-2.5" style={{ borderBottom: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)" }}>
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusStyles[status] ?? statusStyles.idle}`} title={status} />
-        <span className="truncate text-[13px] font-semibold tracking-tight" style={{ color: "var(--ac-ink)" }}>{data.name}</span>
+        <span className="truncate text-[13px] font-semibold tracking-tight" style={{ color: isDark ? "#f1f5f9" : "#1e293b" }}>{data.name}</span>
       </div>
-      <p className="mt-2 line-clamp-2 shrink-0 text-[11px] leading-snug" style={{ color: "var(--ac-muted)" }}>{data.role || "—"}</p>
+      <p className="mt-2 line-clamp-2 shrink-0 text-[11px] leading-snug" style={{ color: isDark ? "#cbd5e1" : "#64748b" }}>{data.role || "—"}</p>
 
       {/* Streaming preview — grows with the node */}
       <pre
         ref={previewRef}
         className="nowheel nodrag mt-2 min-h-[4rem] flex-1 overflow-y-auto rounded-lg border p-2 font-mono text-[10px] leading-relaxed"
-        style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
+        style={{
+          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+          background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.03)",
+          color: isDark ? "#94a3b8" : "#475569",
+        }}
       >
-        {live ? stripModelArtifacts(live, data.provider) : <span className="italic text-slate-600">Waiting for output…</span>}
+        {live ? stripModelArtifacts(live, data.provider) : <span style={{ color: isDark ? "#475569" : "#94a3b8", fontStyle: "italic" }}>Waiting for output…</span>}
       </pre>
 
       {/* Toggle bar for full output dropdown */}
@@ -99,7 +103,11 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
             ? "cursor-pointer hover:brightness-110"
             : "cursor-default opacity-50"
         }`}
-        style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
+        style={{
+          borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+          background: isDark ? "rgba(0,0,0,0.2)" : "rgba(0,0,0,0.03)",
+          color: isDark ? "#94a3b8" : "#64748b",
+        }}
       >
         <span>Full Output</span>
         <svg
@@ -122,20 +130,24 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
         <pre
           ref={expandedRef}
           className="nowheel nodrag h-48 overflow-y-auto rounded-lg border p-2 font-mono text-[10px] leading-relaxed"
-          style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
+          style={{
+            borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+            background: isDark ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.03)",
+            color: isDark ? "#94a3b8" : "#475569",
+          }}
         >
           {displayText || "No output yet."}
         </pre>
       </div>
 
       {/* Badges — fixed at bottom */}
-      <div className="mt-2 flex shrink-0 flex-wrap gap-1.5 text-[9px] font-medium uppercase tracking-wide" style={{ color: "var(--ac-muted)" }}>
-        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-code-bg)", color: "var(--ac-accent)" }}>
+      <div className="mt-2 flex shrink-0 flex-wrap gap-1.5 text-[9px] font-medium uppercase tracking-wide" style={{ color: isDark ? "#94a3b8" : "#64748b" }}>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: isDark ? "rgba(45,212,191,0.12)" : "rgba(13,148,136,0.1)", color: isDark ? "#2dd4bf" : "#0d9488" }}>
           {data.provider === "anthropic" ? "claude" : "chatgpt"}
         </span>
-        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)", color: "var(--ac-muted)" }}>{data.model}</span>
-        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)" }}>{data.output_key}</span>
-        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)" }}>{data.output_type}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "#cbd5e1" : "#475569" }}>{data.model}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "#94a3b8" : "#64748b" }}>{data.output_key}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)", color: isDark ? "#94a3b8" : "#64748b" }}>{data.output_type}</span>
       </div>
       <Handle
         type="source"
