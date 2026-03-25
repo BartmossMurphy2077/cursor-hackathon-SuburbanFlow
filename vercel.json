@@ -1,5 +1,18 @@
 {
-  "routes": [
-    { "src": "/(.*)", "dest": "/api/index.py" }
+  "buildCommand": "cd frontend && npm ci && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/auth/:path*", "destination": "/api/index.py" },
+    { "source": "/runs/:path*", "destination": "/api/index.py" },
+    { "source": "/runs", "destination": "/api/index.py" },
+    { "source": "/sandboxes/:path*", "destination": "/api/index.py" },
+    { "source": "/sandboxes", "destination": "/api/index.py" },
+    { "source": "/health", "destination": "/api/index.py" },
+    { "source": "/providers", "destination": "/api/index.py" },
+    { "source": "/models/:path*", "destination": "/api/index.py" },
+    { "source": "/graph/:path*", "destination": "/api/index.py" },
+    { "source": "/docs", "destination": "/api/index.py" },
+    { "source": "/openapi.json", "destination": "/api/index.py" },
+    { "source": "/:path*", "destination": "/index.html" }
   ]
 }
