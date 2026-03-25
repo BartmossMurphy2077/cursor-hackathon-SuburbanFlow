@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlmodel import Session, select
+from starlette.responses import Response
 
 from ..database import get_session
 from ..db_models import RunNodeOutput, RunRecord, Sandbox, SandboxEdge, SandboxNode
@@ -109,27 +111,16 @@ def delete_sandbox(
     sandbox_id: str,
     user_id: Annotated[str, Depends(get_current_user_id)],
     session: Session = Depends(get_session),
-) -> None:
+) -> Response:
     row = require_sandbox_owner(session, sandbox_id, user_id)
-    run_rows = session.exec(
-        select(RunRecord).where(RunRecord.sandbox_id == sandbox_id),
-    ).all()
-    for run in run_rows:
-        for out in session.exec(
-            select(RunNodeOutput).where(RunNodeOutput.run_id == run.run_id),
-        ).all():
-            session.delete(out)
-        session.delete(run)
-    for sn in session.exec(
-        select(SandboxNode).where(SandboxNode.sandbox_id == sandbox_id),
-    ).all():
-        session.delete(sn)
-    for se in session.exec(
-        select(SandboxEdge).where(SandboxEdge.sandbox_id == sandbox_id),
-    ).all():
-        session.delete(se)
+    run_ids = select(RunRecord.run_id).where(RunRecord.sandbox_id == sandbox_id)
+    session.exec(delete(RunNodeOutput).where(RunNodeOutput.run_id.in_(run_ids)))  # type: ignore[union-attr]
+    session.exec(delete(RunRecord).where(RunRecord.sandbox_id == sandbox_id))  # type: ignore[call-overload]
+    session.exec(delete(SandboxNode).where(SandboxNode.sandbox_id == sandbox_id))  # type: ignore[call-overload]
+    session.exec(delete(SandboxEdge).where(SandboxEdge.sandbox_id == sandbox_id))  # type: ignore[call-overload]
     session.delete(row)
     session.commit()
+    return Response(status_code=204)
 
 
 @router.get("/{sandbox_id}/graph", response_model=PipelineGraph)
