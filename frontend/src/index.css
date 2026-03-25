@@ -13,6 +13,30 @@ body {
   @apply bg-canvas-bg bg-app-radial bg-fixed text-canvas-ink antialiased;
 }
 
+/* Dark-themed scrollbars that match the canvas UI */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
 .react-flow__background {
   @apply bg-transparent;
 }
@@ -35,6 +59,18 @@ body {
 
 .react-flow__edge-path {
   stroke-linecap: round;
+}
+
+.react-flow__resize-control.line {
+  border-color: rgba(45, 212, 191, 0.3) !important;
+}
+
+.react-flow__resize-control.handle {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(45, 212, 191, 0.5) !important;
+  background: #0f1219 !important;
 }
 
 @layer components {

@@ -35,6 +35,7 @@ function buildInitialNodes(): Node[] {
       id: "agent_1",
       type: "agent",
       position: { x: 40, y: 100 },
+      style: { width: 260, height: 280 },
       data: {
         name: "Researcher",
         role: "Research the topic and produce a concise summary.",
@@ -49,6 +50,7 @@ function buildInitialNodes(): Node[] {
       id: "agent_2",
       type: "agent",
       position: { x: 380, y: 100 },
+      style: { width: 260, height: 280 },
       data: {
         name: "Writer",
         role: "Write a short report using the research summary.",
@@ -160,7 +162,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const base = defaultAgentData();
     const data: AgentData = { ...base, ...template };
     set({
-      nodes: [...get().nodes, { id, type: "agent", position, data }],
+      nodes: [...get().nodes, { id, type: "agent", position, style: { width: 260, height: 280 }, data }],
       selectedId: id,
     });
   },
