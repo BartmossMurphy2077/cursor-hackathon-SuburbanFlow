@@ -25,31 +25,33 @@ export type CollectorData = {
 export type RunRequestPayload = {
   sandbox_id: string;
   prompt: string;
-  graph: {
-    nodes: Array<{
-      id: string;
-      name: string;
-      role: string;
-      provider: "openai" | "anthropic";
-      model: string;
-      temperature: number;
-      output_key: string;
-      output_type: "text" | "json";
-    }>;
-    edges: Array<{ source: string; target: string }>;
-    collector: {
-      id: string;
-      name: string;
-      kind: "collector";
-      role: string;
-      provider: "openai" | "anthropic";
-      model: string;
-      temperature: number;
-      output_key: string;
-      output_type: "text" | "json";
-    };
-    global_context: Record<string, unknown>;
+  graph: PipelineGraphPayload;
+};
+
+export type PipelineGraphPayload = {
+  nodes: Array<{
+    id: string;
+    name: string;
+    role: string;
+    provider: "openai" | "anthropic";
+    model: string;
+    temperature: number;
+    output_key: string;
+    output_type: "text" | "json";
+  }>;
+  edges: Array<{ source: string; target: string }>;
+  collector: {
+    id: string;
+    name: string;
+    kind: "collector";
+    role: string;
+    provider: "openai" | "anthropic";
+    model: string;
+    temperature: number;
+    output_key: string;
+    output_type: "text" | "json";
   };
+  global_context: Record<string, unknown>;
 };
 
 export function getAgentNodeIds(nodes: Node[]): Set<string> {
@@ -129,6 +131,22 @@ export function validateGraphForRun(
   edges: Edge[],
   globalContext: Record<string, unknown> = {},
 ): { ok: true; payload: RunRequestPayload } | { ok: false; error: string } {
+  const graph = buildPipelineGraphPayload(nodes, edges, globalContext);
+  if (!graph.ok) return graph;
+
+  const payload: RunRequestPayload = {
+    sandbox_id: "canvas_sandbox",
+    prompt: "",
+    graph: graph.graph,
+  };
+  return { ok: true, payload };
+}
+
+export function buildPipelineGraphPayload(
+  nodes: Node[],
+  edges: Edge[],
+  globalContext: Record<string, unknown> = {},
+): { ok: true; graph: PipelineGraphPayload } | { ok: false; error: string } {
   const agentNodes = nodes.filter((n): n is Node & { type: "agent"; data: AgentData } => n.type === "agent");
   const collector = nodes.find((n) => n.type === "collector") as (Node & { data: CollectorData }) | undefined;
 
@@ -155,51 +173,101 @@ export function validateGraphForRun(
     };
   }
 
-  const payload: RunRequestPayload = {
-    sandbox_id: "canvas_sandbox",
-    prompt: "", // filled by caller
-    graph: {
-      nodes: agentNodes.map((n) => ({
-        id: n.id,
-        name: String(n.data.name ?? "Agent"),
-        role: String(n.data.role ?? ""),
-        provider: n.data.provider === "anthropic" ? "anthropic" : "openai",
-        model: String(n.data.model ?? (n.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini")),
-        temperature:
-          typeof n.data.temperature === "number" && Number.isFinite(n.data.temperature)
-            ? Math.min(2, Math.max(0, n.data.temperature))
-            : 0.7,
-        output_key: String(n.data.output_key ?? "text"),
-        output_type: n.data.output_type === "json" ? "json" : "text",
-      })),
-      edges: apiEdges,
-      collector: {
-        id: collector.id,
-        name: String(collector.data.name ?? "Collector"),
-        kind: "collector",
-        role: String(
-          collector.data.role ??
-            "Synthesize the directly connected agent outputs into one coherent final report.",
-        ),
-        provider: collector.data.provider === "anthropic" ? "anthropic" : "openai",
-        model: String(
-          collector.data.model ??
-            (collector.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini"),
-        ),
-        temperature:
-          typeof collector.data.temperature === "number" && Number.isFinite(collector.data.temperature)
-            ? Math.min(2, Math.max(0, collector.data.temperature))
-            : 0.4,
-        output_key: String(collector.data.output_key ?? "final_report"),
-        output_type: collector.data.output_type === "json" ? "json" : "text",
-      },
-      global_context: globalContext,
+  const graph: PipelineGraphPayload = {
+    nodes: agentNodes.map((n) => ({
+      id: n.id,
+      name: String(n.data.name ?? "Agent"),
+      role: String(n.data.role ?? ""),
+      provider: n.data.provider === "anthropic" ? "anthropic" : "openai",
+      model: String(n.data.model ?? (n.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini")),
+      temperature:
+        typeof n.data.temperature === "number" && Number.isFinite(n.data.temperature)
+          ? Math.min(2, Math.max(0, n.data.temperature))
+          : 0.7,
+      output_key: String(n.data.output_key ?? "text"),
+      output_type: n.data.output_type === "json" ? "json" : "text",
+    })),
+    edges: apiEdges,
+    collector: {
+      id: collector.id,
+      name: String(collector.data.name ?? "Collector"),
+      kind: "collector",
+      role: String(
+        collector.data.role ??
+          "Synthesize the directly connected agent outputs into one coherent final report.",
+      ),
+      provider: collector.data.provider === "anthropic" ? "anthropic" : "openai",
+      model: String(
+        collector.data.model ??
+          (collector.data.provider === "anthropic" ? "claude-sonnet-4-20250514" : "gpt-4o-mini"),
+      ),
+      temperature:
+        typeof collector.data.temperature === "number" && Number.isFinite(collector.data.temperature)
+          ? Math.min(2, Math.max(0, collector.data.temperature))
+          : 0.4,
+      output_key: String(collector.data.output_key ?? "final_report"),
+      output_type: collector.data.output_type === "json" ? "json" : "text",
     },
+    global_context: globalContext,
   };
 
-  return { ok: true, payload };
+  return { ok: true, graph };
+}
+
+export function graphToCanvas(graph: PipelineGraphPayload): { nodes: Node[]; edges: Edge[] } {
+  const nodes: Node[] = [
+    ...graph.nodes.map((n, idx) => ({
+      id: n.id,
+      type: "agent",
+      position: { x: 80 + idx * 300, y: 120 + (idx % 2) * 140 },
+      data: {
+        name: n.name,
+        role: n.role,
+        provider: n.provider,
+        model: n.model,
+        temperature: n.temperature,
+        output_key: n.output_key,
+        output_type: n.output_type,
+      } satisfies AgentData,
+    })),
+    {
+      id: graph.collector.id || COLLECTOR_ID,
+      type: "collector",
+      position: { x: 860, y: 180 },
+      data: {
+        name: graph.collector.name,
+        role: graph.collector.role,
+        provider: graph.collector.provider,
+        model: graph.collector.model,
+        temperature: graph.collector.temperature,
+        output_key: graph.collector.output_key,
+        output_type: graph.collector.output_type,
+      } satisfies CollectorData,
+    },
+  ];
+
+  const edges: Edge[] = graph.edges.map((e, idx) => ({
+    id: `e_${e.source}_${e.target}_${idx}`,
+    source: e.source,
+    target: e.target,
+    animated: false,
+  }));
+
+  return { nodes, edges };
 }
 
 export function withPrompt(payload: RunRequestPayload, prompt: string): RunRequestPayload {
   return { ...payload, prompt };
+}
+
+export function parseGlobalContextJson(raw: string): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+  try {
+    const parsed = JSON.parse(raw || "{}") as unknown;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { ok: false, error: "Global context must be a JSON object." };
+    }
+    return { ok: true, value: parsed as Record<string, unknown> };
+  } catch {
+    return { ok: false, error: "Invalid global context JSON." };
+  };
 }

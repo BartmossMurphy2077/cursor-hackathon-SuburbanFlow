@@ -12,10 +12,12 @@ import { create } from "zustand";
 
 import {
   COLLECTOR_ID,
+  graphToCanvas,
   getAgentNodeIds,
   getApiEdges,
   type AgentData,
   type CollectorData,
+  type PipelineGraphPayload,
   wouldCreateCycle,
 } from "../lib/graph";
 
@@ -35,7 +37,6 @@ function buildInitialNodes(): Node[] {
       id: "agent_1",
       type: "agent",
       position: { x: 40, y: 100 },
-      style: { width: 260, height: 280 },
       data: {
         name: "Researcher",
         role: "Research the topic and produce a concise summary.",
@@ -50,7 +51,6 @@ function buildInitialNodes(): Node[] {
       id: "agent_2",
       type: "agent",
       position: { x: 380, y: 100 },
-      style: { width: 260, height: 280 },
       data: {
         name: "Writer",
         role: "Write a short report using the research summary.",
@@ -86,6 +86,7 @@ function buildInitialEdges(): Edge[] {
 }
 
 type CanvasState = {
+  sandboxId: string | null;
   nodes: Node[];
   edges: Edge[];
   selectedId: string | null;
@@ -106,9 +107,12 @@ type CanvasState = {
   setSandboxName: (name: string) => void;
   setPrompt: (prompt: string) => void;
   setGlobalContextJson: (json: string) => void;
+  setSandboxMeta: (meta: { id: string; name: string }) => void;
+  loadGraphFromApi: (graph: PipelineGraphPayload) => void;
 };
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
+  sandboxId: null,
   nodes: buildInitialNodes(),
   edges: buildInitialEdges(),
   selectedId: null,
@@ -162,7 +166,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const base = defaultAgentData();
     const data: AgentData = { ...base, ...template };
     set({
-      nodes: [...get().nodes, { id, type: "agent", position, style: { width: 260, height: 280 }, data }],
+      nodes: [...get().nodes, { id, type: "agent", position, data }],
       selectedId: id,
     });
   },
@@ -202,6 +206,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   loadDemo: () =>
     set({
+      sandboxId: null,
       nodes: buildInitialNodes(),
       edges: buildInitialEdges(),
       selectedId: null,
@@ -210,4 +215,14 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   setSandboxName: (name) => set({ sandboxName: name }),
   setPrompt: (prompt) => set({ prompt }),
   setGlobalContextJson: (json) => set({ globalContextJson: json }),
+  setSandboxMeta: ({ id, name }) => set({ sandboxId: id, sandboxName: name }),
+  loadGraphFromApi: (graph) => {
+    const canvas = graphToCanvas(graph);
+    set({
+      nodes: canvas.nodes,
+      edges: canvas.edges,
+      selectedId: null,
+      globalContextJson: JSON.stringify(graph.global_context ?? {}, null, 2),
+    });
+  },
 }));

@@ -27,7 +27,7 @@ export function SignupPage() {
     }
 
     const ok = await register(email, password);
-    if (ok) navigate("/", { replace: true });
+    if (ok) navigate("/dashboard", { replace: true });
   };
 
   const displayError = localError ?? error;
