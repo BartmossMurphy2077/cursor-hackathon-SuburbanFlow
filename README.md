@@ -142,8 +142,12 @@ AUTH_DISABLED=1
 
 ### 3a. Run with Docker (Recommended)
 
-```bash
-docker compose up --build
+If you see `EPERM: operation not permitted, rmdir ... .vite/deps`, this is a Windows/OneDrive file-lock issue. Fix:
+
+```powershell
+taskkill /IM node.exe /F
+Remove-Item -Recurse -Force "frontend/node_modules/.vite" -ErrorAction SilentlyContinue
+npm --prefix frontend run dev -- --force
 ```
 
 Open [http://localhost:8000](http://localhost:8000). The frontend and API are both served from port 8000.
