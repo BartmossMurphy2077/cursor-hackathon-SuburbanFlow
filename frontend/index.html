@@ -2,6 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AgentCanvas</title>
@@ -11,6 +14,16 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // Auto-reload if hashed assets 404 (stale index.html from browser cache)
+      window.addEventListener("error", function (e) {
+        var t = e.target;
+        if (t && (t.tagName === "SCRIPT" || t.tagName === "LINK") && !window.__assetRetried) {
+          window.__assetRetried = true;
+          window.location.reload();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>
