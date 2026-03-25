@@ -30,14 +30,14 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas-bg px-4 text-slate-100">
+      <div className="flex min-h-screen items-center justify-center px-4" style={{ backgroundColor: "var(--ac-bg)", color: "var(--ac-ink)" }}>
         <div className="w-full max-w-md space-y-4 rounded-2xl border border-canvas-border bg-canvas-elevated/80 p-6 shadow-bar backdrop-blur-xl">
-          <h1 className="text-lg font-semibold text-white">Something went wrong</h1>
-          <p className="text-sm leading-relaxed text-slate-400">
+          <h1 className="text-lg font-semibold text-canvas-ink">Something went wrong</h1>
+          <p className="text-sm leading-relaxed text-canvas-muted">
             The app encountered an unexpected error. This is often caused by an
             expired session. Click below to sign out and start fresh.
           </p>
-          <pre className="max-h-24 overflow-auto rounded-lg border border-white/[0.06] bg-black/30 p-3 font-mono text-[10px] leading-relaxed text-rose-300">
+          <pre className="max-h-24 overflow-auto rounded-lg border border-canvas-border p-3 font-mono text-[10px] leading-relaxed text-rose-300" style={{ background: "var(--ac-surface)" }}>
             {this.state.message}
           </pre>
           <button

@@ -6,15 +6,15 @@ export default {
     extend: {
       colors: {
         canvas: {
-          bg: "#090b0f",
-          elevated: "#0f1219",
-          grid: "#1a2230",
-          panel: "rgba(15, 18, 24, 0.72)",
-          border: "rgba(255, 255, 255, 0.08)",
-          accent: "#2dd4bf",
-          "accent-dim": "#14b8a6",
-          muted: "#94a3b8",
-          ink: "#e2e8f0",
+          bg: "rgb(var(--c-bg) / <alpha-value>)",
+          elevated: "rgb(var(--c-elevated) / <alpha-value>)",
+          grid: "rgb(var(--c-grid) / <alpha-value>)",
+          panel: "rgb(var(--c-elevated) / 0.72)",
+          border: "rgb(var(--c-border) / var(--c-border-a))",
+          accent: "rgb(var(--c-accent) / <alpha-value>)",
+          "accent-dim": "rgb(var(--c-accent-dim) / <alpha-value>)",
+          muted: "rgb(var(--c-muted) / <alpha-value>)",
+          ink: "rgb(var(--c-ink) / <alpha-value>)",
         },
       },
       boxShadow: {

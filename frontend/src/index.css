@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 /* ── Theme CSS variables ─────────────────────────────────────── */
+/* Full-value vars for inline styles */
 :root {
   --ac-bg: #090b0f;
   --ac-elevated: #0f1219;
@@ -19,6 +20,17 @@
   --ac-node-bg: #0f1219;
   --ac-node-bg-from: #141a24;
   --ac-node-bg-to: #0b0e14;
+
+  /* RGB-channel vars for Tailwind opacity modifier support */
+  --c-bg: 9 11 15;
+  --c-elevated: 15 18 25;
+  --c-grid: 26 34 48;
+  --c-border: 255 255 255;
+  --c-border-a: 0.08;
+  --c-accent: 45 212 191;
+  --c-accent-dim: 20 184 166;
+  --c-muted: 148 163 184;
+  --c-ink: 226 232 240;
 }
 
 .light {
@@ -37,6 +49,16 @@
   --ac-node-bg: #ffffff;
   --ac-node-bg-from: #ffffff;
   --ac-node-bg-to: #f1f5f9;
+
+  --c-bg: 248 250 252;
+  --c-elevated: 255 255 255;
+  --c-grid: 226 232 240;
+  --c-border: 0 0 0;
+  --c-border-a: 0.1;
+  --c-accent: 13 148 136;
+  --c-accent-dim: 15 118 110;
+  --c-muted: 100 116 139;
+  --c-ink: 30 41 59;
 }
 
 html {

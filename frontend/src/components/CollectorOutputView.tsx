@@ -108,7 +108,7 @@ export function CollectorOutputView({ collectorOutput }: CollectorOutputViewProp
           className={`rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
             tab === "rendered"
               ? "bg-canvas-accent/15 text-canvas-accent ring-1 ring-canvas-accent/30"
-              : "text-slate-500 hover:text-slate-300"
+              : "text-canvas-muted hover:text-canvas-ink"
           }`}
         >
           Rendered
@@ -119,7 +119,7 @@ export function CollectorOutputView({ collectorOutput }: CollectorOutputViewProp
           className={`rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
             tab === "raw"
               ? "bg-canvas-accent/15 text-canvas-accent ring-1 ring-canvas-accent/30"
-              : "text-slate-500 hover:text-slate-300"
+              : "text-canvas-muted hover:text-canvas-ink"
           }`}
         >
           Raw
@@ -129,7 +129,7 @@ export function CollectorOutputView({ collectorOutput }: CollectorOutputViewProp
           type="button"
           onClick={handleDownload}
           title="Download output"
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-white"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-canvas-muted transition hover:bg-canvas-ink/[0.06] hover:text-canvas-ink"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />

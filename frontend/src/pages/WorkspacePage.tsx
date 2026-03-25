@@ -137,7 +137,7 @@ export function WorkspacePage() {
             <button
               type="button"
               onClick={() => showToast("Try reloading this page.")}
-              className="rounded-lg border border-canvas-border px-3 py-1.5 text-sm text-slate-300"
+              className="rounded-lg border border-canvas-border px-3 py-1.5 text-sm text-canvas-muted"
             >
               Help
             </button>
@@ -149,7 +149,7 @@ export function WorkspacePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-full items-center justify-center text-sm text-slate-400">
+      <div className="flex min-h-full items-center justify-center text-sm text-canvas-muted">
         Loading sandbox workspace...
       </div>
     );
@@ -167,7 +167,7 @@ export function WorkspacePage() {
         }}
       />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-canvas-border/60 bg-canvas-bg/70 px-4 py-1.5 text-xs text-slate-400">
+        <div className="flex items-center justify-between border-b border-canvas-border/60 bg-canvas-bg/70 px-4 py-1.5 text-xs text-canvas-muted">
           <Link to="/dashboard" className="text-canvas-accent hover:underline">
             Back to dashboard
           </Link>

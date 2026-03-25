@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { ThemeToggle } from "../components/ThemeToggle";
 import { authFetch } from "../lib/api";
 import { useAuthStore } from "../stores/authStore";
 
@@ -120,22 +121,23 @@ export function DashboardPage() {
   };
 
   return (
-    <div className="min-h-full bg-canvas-bg bg-app-radial px-6 py-6 text-slate-100">
+    <div className="min-h-full px-6 py-6 text-canvas-ink" style={{ backgroundColor: "var(--ac-bg)" }}>
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="rounded-2xl border border-canvas-border bg-canvas-elevated/75 p-5 shadow-bar backdrop-blur-xl">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Dashboard</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">Your sandboxes and workflows</h1>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-canvas-muted">Dashboard</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-canvas-ink">Your sandboxes and workflows</h1>
+              <p className="mt-1 text-sm text-canvas-muted">
                 {sandboxCountLabel} · {email ?? "signed in"}
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <button
                 type="button"
                 onClick={() => void loadDashboard()}
-                className="rounded-lg border border-canvas-border bg-white/[0.03] px-3.5 py-2 text-sm text-slate-300 hover:bg-white/[0.06]"
+                className="rounded-lg border border-canvas-border bg-canvas-ink/[0.03] px-3.5 py-2 text-sm text-canvas-muted hover:bg-canvas-ink/[0.06]"
               >
                 Refresh
               </button>
@@ -151,7 +153,7 @@ export function DashboardPage() {
         </header>
 
         <section className="rounded-2xl border border-canvas-border bg-canvas-elevated/70 p-5 shadow-panel backdrop-blur-xl">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Create sandbox</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-canvas-muted">Create sandbox</h2>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <input
               className="ac-input mt-0"
@@ -182,9 +184,9 @@ export function DashboardPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (
-            <div className="rounded-xl border border-canvas-border bg-canvas-elevated/70 p-4 text-sm text-slate-400">Loading dashboard...</div>
+            <div className="rounded-xl border border-canvas-border bg-canvas-elevated/70 p-4 text-sm text-canvas-muted">Loading dashboard...</div>
           ) : sandboxes.length === 0 ? (
-            <div className="rounded-xl border border-canvas-border bg-canvas-elevated/70 p-4 text-sm text-slate-400">
+            <div className="rounded-xl border border-canvas-border bg-canvas-elevated/70 p-4 text-sm text-canvas-muted">
               No sandboxes yet. Create one to start building workflows.
             </div>
           ) : (
@@ -197,22 +199,22 @@ export function DashboardPage() {
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="truncate text-lg font-semibold text-white">{sandbox.name}</h3>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{sandbox.description || "No description"}</p>
+                      <h3 className="truncate text-lg font-semibold text-canvas-ink">{sandbox.name}</h3>
+                      <p className="mt-0.5 truncate text-xs text-canvas-muted">{sandbox.description || "No description"}</p>
                     </div>
-                    <span className="rounded bg-white/[0.05] px-2 py-0.5 text-[10px] text-slate-400">
+                    <span className="rounded bg-canvas-ink/[0.05] px-2 py-0.5 text-[10px] text-canvas-muted">
                       {runs.length} runs
                     </span>
                   </div>
 
-                  <div className="space-y-1.5 rounded-xl border border-white/[0.06] bg-black/20 p-2.5">
-                    <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Recent workflows</div>
+                  <div className="space-y-1.5 rounded-xl border border-canvas-border bg-canvas-bg/20 p-2.5">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-canvas-muted">Recent workflows</div>
                     {runs.length === 0 ? (
-                      <div className="text-xs text-slate-500">No runs yet.</div>
+                      <div className="text-xs text-canvas-muted">No runs yet.</div>
                     ) : (
                       runs.map((run) => (
                         <div key={run.run_id} className="flex items-center justify-between gap-2 text-xs">
-                          <span className="truncate font-mono text-slate-400">{run.run_id.slice(0, 8)}</span>
+                          <span className="truncate font-mono text-canvas-muted">{run.run_id.slice(0, 8)}</span>
                           <span className={`rounded px-1.5 py-0.5 ring-1 ${statusStyles[run.status]}`}>{run.status}</span>
                         </div>
                       ))
