@@ -108,15 +108,45 @@ body {
   --xy-handle-border-color: rgba(13, 148, 136, 0.5) !important;
 }
 
-/* Force custom node wrappers to be transparent — our node components handle their own backgrounds */
-.react-flow__node-agent,
-.react-flow__node-collector {
+/* Lock agent/collector node dimensions — prevent React Flow auto-resize */
+.react-flow__node-agent {
+  width: 260px !important;
+  height: 240px !important;
+  max-width: 260px !important;
+  max-height: 240px !important;
+  overflow: hidden !important;
   background: transparent !important;
-  background-color: transparent !important;
   border: none !important;
   padding: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+.react-flow__node-collector {
+  width: 260px !important;
+  height: 200px !important;
+  max-width: 260px !important;
+  max-height: 200px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.react-flow__node-agent > *,
+.react-flow__node-collector > * {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.react-flow__node-agent pre,
+.react-flow__node-collector pre {
+  overflow: auto !important;
+  word-break: break-all !important;
+  white-space: pre-wrap !important;
 }
 
 /* Additional React Flow cosmetic styling */

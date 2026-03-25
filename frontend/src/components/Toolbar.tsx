@@ -1,8 +1,57 @@
+import { useCallback, useEffect } from "react";
 import { parseGlobalContextJson, validateGraphForRun, withPrompt } from "../lib/graph";
 import { authFetch, sseUrl } from "../lib/api";
 import { useCanvasStore } from "../stores/canvasStore";
 import { useRunStore } from "../stores/runStore";
 import { useThemeStore } from "../stores/themeStore";
+
+function autoLayoutNodes() {
+  const store = useCanvasStore.getState();
+  const { nodes, edges } = store;
+  if (nodes.length === 0) return;
+
+  const adj: Record<string, string[]> = {};
+  const indeg: Record<string, number> = {};
+  for (const n of nodes) { adj[n.id] = []; indeg[n.id] = 0; }
+  for (const e of edges) {
+    if (adj[e.source]) adj[e.source].push(e.target);
+    if (e.target in indeg) indeg[e.target]++;
+  }
+  const layers: string[][] = [];
+  let queue = Object.keys(indeg).filter((id) => indeg[id] === 0);
+  while (queue.length > 0) {
+    layers.push(queue);
+    const next: string[] = [];
+    for (const id of queue) {
+      for (const t of adj[id] ?? []) {
+        indeg[t]--;
+        if (indeg[t] === 0) next.push(t);
+      }
+    }
+    queue = next;
+  }
+  const orphans = nodes.filter((n) => !layers.flat().includes(n.id));
+  if (orphans.length) layers.push(orphans.map((n) => n.id));
+
+  const X_GAP = 420;
+  const Y_GAP = 60;
+  const START_X = 60;
+  const START_Y = 80;
+
+  const posMap: Record<string, { x: number; y: number }> = {};
+  for (let col = 0; col < layers.length; col++) {
+    const layer = layers[col];
+    const totalHeight = layer.length * 280 + (layer.length - 1) * Y_GAP;
+    const topY = START_Y + Math.max(0, (400 - totalHeight) / 2);
+    for (let row = 0; row < layer.length; row++) {
+      posMap[layer[row]] = { x: START_X + col * X_GAP, y: topY + row * (280 + Y_GAP) };
+    }
+  }
+
+  useCanvasStore.setState({
+    nodes: nodes.map((n) => posMap[n.id] ? { ...n, position: posMap[n.id] } : n),
+  });
+}
 
 export function Toolbar() {
   const sandboxName = useCanvasStore((s) => s.sandboxName);
@@ -26,6 +75,19 @@ export function Toolbar() {
   const setRunId = useRunStore((s) => s.setRunId);
   const setRunning = useRunStore((s) => s.setRunning);
   const attachEventSource = useRunStore((s) => s.attachEventSource);
+
+  const runPipelineRef = useCallback(() => { void runPipeline(); }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (!isRunning) runPipelineRef();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isRunning, runPipelineRef]);
 
   const runPipeline = async () => {
     const parsedGlobal = parseGlobalContextJson(globalContextJson);
@@ -159,11 +221,22 @@ export function Toolbar() {
         </button>
         <button
           type="button"
+          onClick={autoLayoutNodes}
+          title="Auto-layout nodes left-to-right"
+          className="rounded-lg border border-[var(--ac-border)] px-3 py-2 text-sm font-medium shadow-panel transition hover:bg-[var(--ac-surface-hover)]"
+          style={{ color: "var(--ac-muted)" }}
+        >
+          <svg className="inline-block h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6z" />
+          </svg>
+        </button>
+        <button
+          type="button"
           onClick={() => loadDemo()}
           className="rounded-lg border border-[var(--ac-border)] px-3.5 py-2 text-sm font-medium shadow-panel transition hover:bg-[var(--ac-surface-hover)]"
           style={{ color: "var(--ac-muted)" }}
         >
-          Reset demo
+          Clear canvas
         </button>
         <button
           type="button"
@@ -171,7 +244,8 @@ export function Toolbar() {
           onClick={() => void runPipeline()}
           className="rounded-lg bg-gradient-to-r from-canvas-accent-dim to-canvas-accent px-5 py-2 text-sm font-semibold text-canvas-bg shadow-[0_0_24px_rgba(45,212,191,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {isRunning ? "Running…" : "Run pipeline"}
+          {isRunning ? "Running..." : "Run pipeline"}
+          {!isRunning && <kbd className="ml-2 rounded border border-white/20 px-1.5 py-0.5 text-[9px] font-normal opacity-60">Ctrl+Enter</kbd>}
         </button>
       </div>
     </header>

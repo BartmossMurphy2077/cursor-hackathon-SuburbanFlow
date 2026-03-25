@@ -12,7 +12,7 @@ export function EventsLog() {
   }, [lines]);
 
   return (
-    <div className="relative flex h-40 shrink-0 flex-col backdrop-blur-md" style={{ borderTop: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+    <div className="relative flex h-full shrink-0 flex-col backdrop-blur-md" style={{ borderTop: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-canvas-accent/30 to-transparent" />
       <div className="flex shrink-0 items-center justify-between px-4 py-2" style={{ borderBottom: "1px solid var(--ac-border)" }}>
         <div className="flex items-center gap-2">

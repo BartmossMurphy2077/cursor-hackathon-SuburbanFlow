@@ -10,6 +10,8 @@ type SseEvent =
   | { type: "run_complete"; collector_output?: unknown }
   | { type: "stream_end" };
 
+export type RunToast = { message: string; kind: "success" | "error" } | null;
+
 type RunState = {
   runId: string | null;
   isRunning: boolean;
@@ -20,6 +22,7 @@ type RunState = {
   collectorOutput: unknown | null;
   lastError: string | null;
   eventSource: EventSource | null;
+  runToast: RunToast;
 
   resetForNewRun: () => void;
   appendLog: (line: string) => void;
@@ -28,6 +31,8 @@ type RunState = {
   setRunId: (id: string | null) => void;
   setRunning: (v: boolean) => void;
   attachEventSource: (es: EventSource | null) => void;
+  clearRunToast: () => void;
+  _showRunToast?: (message: string, kind: "success" | "error") => void;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -44,6 +49,10 @@ export const useRunStore = create<RunState>((set, get) => ({
   collectorOutput: null,
   lastError: null,
   eventSource: null,
+  runToast: null,
+
+  clearRunToast: () => set({ runToast: null }),
+  _showRunToast: (message, kind) => set({ runToast: { message, kind } }),
 
   resetForNewRun: () => {
     get().closeStream();
@@ -120,11 +129,18 @@ export const useRunStore = create<RunState>((set, get) => ({
             ? { nodeStatus: { ...s.nodeStatus, [nid]: "error" } }
             : {}),
         }));
+        get()._showRunToast?.(
+          nid ? `Node "${nid}" failed: ${ev.error.slice(0, 100)}` : `Error: ${ev.error.slice(0, 100)}`,
+          "error",
+        );
         break;
       }
-      case "run_complete":
+      case "run_complete": {
+        const doneCount = Object.values(get().nodeStatus).filter((s) => s === "done").length;
         set({ collectorOutput: ev.collector_output ?? null, isRunning: false });
+        get()._showRunToast?.(`Pipeline complete — ${doneCount} agent${doneCount !== 1 ? "s" : ""} finished`, "success");
         break;
+      }
       case "stream_end":
         get().closeStream();
         set({ isRunning: false });

@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { EventsLog } from "../components/EventsLog";
 import { FlowCanvas } from "../components/FlowCanvas";
 import { Inspector } from "../components/Inspector";
 import { Palette } from "../components/Palette";
+import { ResizeHandle } from "../components/ResizeHandle";
 import { Toast } from "../components/Toast";
 import { Toolbar } from "../components/Toolbar";
 import { authFetch } from "../lib/api";
@@ -26,6 +28,23 @@ export function WorkspacePage() {
   const setSandboxMeta = useCanvasStore((s) => s.setSandboxMeta);
   const loadGraphFromApi = useCanvasStore((s) => s.loadGraphFromApi);
   const showToast = useCanvasStore((s) => s.showToast);
+  const pendingDelete = useCanvasStore((s) => s.pendingDelete);
+  const confirmDelete = useCanvasStore((s) => s.confirmDelete);
+  const cancelDelete = useCanvasStore((s) => s.cancelDelete);
+  const pendingClear = useCanvasStore((s) => s.pendingClear);
+  const confirmClear = useCanvasStore((s) => s.confirmClear);
+  const cancelClear = useCanvasStore((s) => s.cancelClear);
+
+  const [showLibrary, setShowLibrary] = useState(true);
+  const [showInspector, setShowInspector] = useState(true);
+  const [showEvents, setShowEvents] = useState(true);
+  const [libraryW, setLibraryW] = useState(216);
+  const [inspectorW, setInspectorW] = useState(352);
+  const [eventsH, setEventsH] = useState(160);
+
+  const resizeLibrary = useCallback((d: number) => setLibraryW((w) => Math.max(140, Math.min(400, w + d))), []);
+  const resizeInspector = useCallback((d: number) => setInspectorW((w) => Math.max(200, Math.min(500, w + d))), []);
+  const resizeEvents = useCallback((d: number) => setEventsH((h) => Math.max(60, Math.min(400, h - d))), []);
 
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
@@ -156,16 +175,78 @@ export function WorkspacePage() {
         </div>
         <Toolbar />
         <div className="flex min-h-0 flex-1">
-          <Palette />
+          {showLibrary && (
+            <>
+              <div className="shrink-0 overflow-hidden" style={{ width: libraryW }}>
+                <Palette />
+              </div>
+              <ResizeHandle direction="horizontal" side="right" onResize={resizeLibrary} />
+            </>
+          )}
           <div className="flex min-w-0 flex-1 flex-col">
+            {/* Panel toggle bar */}
+            <div className="flex shrink-0 items-center gap-1 px-2 py-1" style={{ borderBottom: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+              <button
+                type="button"
+                onClick={() => setShowLibrary((v) => !v)}
+                className="rounded px-2 py-0.5 text-[10px] font-medium transition hover:brightness-110"
+                style={{ color: showLibrary ? "var(--ac-accent)" : "var(--ac-muted)", background: showLibrary ? "rgba(45,212,191,0.1)" : "transparent" }}
+              >
+                Library
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEvents((v) => !v)}
+                className="rounded px-2 py-0.5 text-[10px] font-medium transition hover:brightness-110"
+                style={{ color: showEvents ? "var(--ac-accent)" : "var(--ac-muted)", background: showEvents ? "rgba(45,212,191,0.1)" : "transparent" }}
+              >
+                Events
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowInspector((v) => !v)}
+                className="rounded px-2 py-0.5 text-[10px] font-medium transition hover:brightness-110"
+                style={{ color: showInspector ? "var(--ac-accent)" : "var(--ac-muted)", background: showInspector ? "rgba(45,212,191,0.1)" : "transparent" }}
+              >
+                Inspector
+              </button>
+            </div>
             <div className="relative min-h-0 flex-1">
               <FlowCanvas />
             </div>
-            <EventsLog />
+            {showEvents && (
+              <>
+                <ResizeHandle direction="vertical" side="top" onResize={resizeEvents} />
+                <div className="shrink-0 overflow-hidden" style={{ height: eventsH }}>
+                  <EventsLog />
+                </div>
+              </>
+            )}
           </div>
-          <Inspector />
+          {showInspector && (
+            <>
+              <ResizeHandle direction="horizontal" side="left" onResize={resizeInspector} />
+              <div className="shrink-0 overflow-y-auto overflow-x-hidden" style={{ width: inspectorW }}>
+                <Inspector />
+              </div>
+            </>
+          )}
         </div>
         <Toast />
+        {pendingDelete && (
+          <ConfirmDialog
+            message={`Remove ${pendingDelete.names}${pendingDelete.edgeCount > 0 ? ` and ${pendingDelete.edgeCount} connection${pendingDelete.edgeCount > 1 ? "s" : ""}` : ""}?`}
+            onConfirm={confirmDelete}
+            onCancel={cancelDelete}
+          />
+        )}
+        {pendingClear && (
+          <ConfirmDialog
+            message="Clear the entire canvas? All nodes, edges, and the prompt will be removed."
+            onConfirm={confirmClear}
+            onCancel={cancelClear}
+          />
+        )}
       </div>
     </div>
   );

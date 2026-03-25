@@ -41,7 +41,7 @@ const TEMPLATES: Array<{ label: string; data: Partial<AgentData> }> = [
 
 export function Palette() {
   return (
-    <aside className="flex w-[13.5rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderRight: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+    <aside className="flex h-full w-full flex-col backdrop-blur-xl" style={{ borderRight: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
       <div className="ac-panel-header">
         <h2 className="ac-panel-title">Library</h2>
         <p className="ac-panel-sub">Drag a block onto the canvas</p>

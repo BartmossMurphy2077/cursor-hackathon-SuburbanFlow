@@ -58,7 +58,7 @@ export function Inspector() {
 
   if (!selected) {
     return (
-      <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+      <aside className="flex h-full w-full flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
         <div className="ac-panel-header">
           <h2 className="ac-panel-title">Inspector</h2>
           <p className="ac-panel-sub">Select a node to edit details</p>
@@ -90,7 +90,7 @@ export function Inspector() {
     const live = streamText[selected.id];
 
     return (
-      <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+      <aside className="flex h-full w-full flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
         <div className="ac-panel-header">
           <h2 className="ac-panel-title">Agent</h2>
           <p className="truncate font-mono text-[10px]" style={{ color: "var(--ac-muted)" }}>{selected.id}</p>
@@ -194,7 +194,7 @@ export function Inspector() {
   const collectorProvider = cd.provider === "anthropic" ? "anthropic" : "openai";
 
   return (
-    <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+    <aside className="flex h-full w-full flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
       <div className="ac-panel-header" style={{ background: "linear-gradient(to right, rgba(45,212,191,0.1), transparent)" }}>
         <h2 className="ac-panel-title" style={{ color: "var(--ac-accent)" }}>Collector</h2>
         <p className="ac-panel-sub">Final synthesis agent</p>

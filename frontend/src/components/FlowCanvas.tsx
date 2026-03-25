@@ -3,6 +3,7 @@ import {
   BackgroundVariant,
   ConnectionMode,
   Controls,
+  type Edge,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -16,6 +17,7 @@ import type { AgentData } from "../lib/graph";
 import { AgentNode } from "../nodes/AgentNode";
 import { CollectorNode } from "../nodes/CollectorNode";
 import { useCanvasStore } from "../stores/canvasStore";
+import { useRunStore } from "../stores/runStore";
 import { useThemeStore } from "../stores/themeStore";
 
 const nodeTypes = {
@@ -27,7 +29,18 @@ type PalettePayload = { kind: "agent"; template?: Partial<AgentData> } | { kind:
 
 function FlowCanvasInner() {
   const nodes = useCanvasStore((s) => s.nodes);
-  const edges = useCanvasStore((s) => s.edges);
+  const rawEdges = useCanvasStore((s) => s.edges);
+  const nodeStatus = useRunStore((s) => s.nodeStatus);
+
+  const edges: Edge[] = useMemo(() => {
+    return rawEdges.map((e): Edge => ({
+      ...e,
+      animated: nodeStatus[e.source] === "done" && nodeStatus[e.target] === "running" ? true : e.animated,
+      style: nodeStatus[e.source] === "done" && nodeStatus[e.target] === "running"
+        ? { stroke: "#2dd4bf", strokeWidth: 2.5 }
+        : (e.style ?? { stroke: "#64748b", strokeWidth: 2 }),
+    }));
+  }, [rawEdges, nodeStatus]);
   const onNodesChange = useCanvasStore((s) => s.onNodesChange);
   const onEdgesChange = useCanvasStore((s) => s.onEdgesChange);
   const onConnect = useCanvasStore((s) => s.onConnect);
@@ -81,8 +94,20 @@ function FlowCanvasInner() {
     [addAgentNode, addOrFocusCollector, showToast],
   );
 
+  const isEmpty = nodes.length === 0;
+
   return (
     <div className="relative h-full w-full">
+      {isEmpty && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+          <svg className="h-12 w-12 opacity-20" style={{ color: "var(--ac-muted)" }} fill="none" viewBox="0 0 24 24" strokeWidth={1.2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          <p className="text-center text-sm font-medium" style={{ color: "var(--ac-muted)", opacity: 0.6 }}>
+            Drag agents from the Library to start building your pipeline
+          </p>
+        </div>
+      )}
       <ReactFlow
         className={theme === "dark" ? "dark" : ""}
         nodes={nodes}

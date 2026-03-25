@@ -31,59 +31,7 @@ const defaultAgentData = (): AgentData => ({
   output_type: "text",
 });
 
-function buildInitialNodes(): Node[] {
-  return [
-    {
-      id: "agent_1",
-      type: "agent",
-      position: { x: 40, y: 100 },
-      data: {
-        name: "Researcher",
-        role: "Research the topic and produce a concise summary.",
-        provider: "openai",
-        model: "gpt-4o-mini",
-        temperature: 0.7,
-        output_key: "summary",
-        output_type: "text",
-      } satisfies AgentData,
-    },
-    {
-      id: "agent_2",
-      type: "agent",
-      position: { x: 380, y: 100 },
-      data: {
-        name: "Writer",
-        role: "Write a short report using the research summary.",
-        provider: "anthropic",
-        model: "claude-sonnet-4-20250514",
-        temperature: 0.7,
-        output_key: "report",
-        output_type: "text",
-      } satisfies AgentData,
-    },
-    {
-      id: COLLECTOR_ID,
-      type: "collector",
-      position: { x: 720, y: 120 },
-      data: {
-        name: "Collector",
-        role: "Summarize the directly connected agent outputs into a clear final report.",
-        provider: "anthropic",
-        model: "claude-sonnet-4-20250514",
-        temperature: 0.4,
-        output_key: "final_report",
-        output_type: "text",
-      } satisfies CollectorData,
-    },
-  ];
-}
-
-function buildInitialEdges(): Edge[] {
-  return [
-    { id: "e_agent_1_agent_2", source: "agent_1", target: "agent_2", animated: false },
-    { id: "e_agent_2_collector", source: "agent_2", target: COLLECTOR_ID, animated: false },
-  ];
-}
+export type PendingDelete = { names: string; edgeCount: number; changes: NodeChange[] } | null;
 
 type CanvasState = {
   sandboxId: string | null;
@@ -94,6 +42,13 @@ type CanvasState = {
   prompt: string;
   globalContextJson: string;
   toast: string | null;
+  pendingDelete: PendingDelete;
+  pendingClear: boolean;
+  confirmDelete: () => void;
+  cancelDelete: () => void;
+  requestClear: () => void;
+  confirmClear: () => void;
+  cancelClear: () => void;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (conn: Connection) => void;
@@ -113,15 +68,56 @@ type CanvasState = {
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   sandboxId: null,
-  nodes: buildInitialNodes(),
-  edges: buildInitialEdges(),
+  nodes: [],
+  edges: [],
   selectedId: null,
   sandboxName: "My sandbox",
-  prompt: "Help me draft a short atomic-structures report.",
+  prompt: "",
   globalContextJson: "{}",
   toast: null,
+  pendingDelete: null,
+  pendingClear: false,
+
+  requestClear: () => set({ pendingClear: true }),
+  confirmClear: () => {
+    import("./runStore").then(({ useRunStore }) => useRunStore.getState().resetForNewRun());
+    set({
+      pendingClear: false,
+      sandboxId: null,
+      nodes: [],
+      edges: [],
+      selectedId: null,
+      prompt: "",
+    });
+  },
+  cancelClear: () => set({ pendingClear: false }),
+
+  confirmDelete: () => {
+    const pd = get().pendingDelete;
+    if (!pd) return;
+    set({
+      nodes: applyNodeChanges(pd.changes, get().nodes),
+      pendingDelete: null,
+    });
+  },
+
+  cancelDelete: () => set({ pendingDelete: null }),
 
   onNodesChange: (changes) => {
+    const removes = changes.filter((c) => c.type === "remove");
+    if (removes.length > 0) {
+      const { nodes, edges } = get();
+      const removeIds = new Set(removes.map((c) => c.id));
+      const affectedEdges = edges.filter((e) => removeIds.has(e.source) || removeIds.has(e.target));
+      const names = removes.map((c) => {
+        const n = nodes.find((nd) => nd.id === c.id);
+        return (n?.data as Record<string, unknown> | undefined)?.name as string ?? c.id;
+      }).join(", ");
+      set({
+        pendingDelete: { names, edgeCount: affectedEdges.length, changes },
+      });
+      return;
+    }
     set({ nodes: applyNodeChanges(changes, get().nodes) });
   },
 
@@ -166,7 +162,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const base = defaultAgentData();
     const data: AgentData = { ...base, ...template };
     set({
-      nodes: [...get().nodes, { id, type: "agent", position, data }],
+      nodes: [...get().nodes, { id, type: "agent", position, style: { width: 260, height: 240 }, data }],
       selectedId: id,
     });
   },
@@ -186,6 +182,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
           id: COLLECTOR_ID,
           type: "collector",
           position: pos,
+          style: { width: 260, height: 200 },
           data: {
             name: "Collector",
             role: "Summarize the directly connected agent outputs into a clear final report.",
@@ -204,13 +201,10 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   showToast: (msg) => set({ toast: msg }),
   clearToast: () => set({ toast: null }),
 
-  loadDemo: () =>
-    set({
-      sandboxId: null,
-      nodes: buildInitialNodes(),
-      edges: buildInitialEdges(),
-      selectedId: null,
-    }),
+  loadDemo: () => {
+    if (get().nodes.length === 0 && get().edges.length === 0) return;
+    set({ pendingClear: true });
+  },
 
   setSandboxName: (name) => set({ sandboxName: name }),
   setPrompt: (prompt) => set({ prompt }),
