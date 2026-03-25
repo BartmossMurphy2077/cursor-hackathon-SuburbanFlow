@@ -1,4 +1,5 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { useState, useEffect, useRef } from "react";
+import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 
 import type { AgentData } from "../lib/graph";
