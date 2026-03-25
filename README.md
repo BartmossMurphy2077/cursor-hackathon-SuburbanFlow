@@ -1,216 +1,146 @@
-# AgentCanvas
+<p align="center">
+  <img src="frontend/public/favicon.svg" width="48" height="48" alt="AgentCanvas logo" />
+</p>
 
-A visual, sandbox-based multi-agent orchestration platform for the web. Users build AI pipelines by dragging agent nodes onto an infinite canvas, wiring them together, and running the graph. Each agent can use a different LLM provider (OpenAI or Anthropic), and outputs flow between nodes automatically. A collector node synthesizes everything into a final report.
+<h1 align="center">AgentCanvas</h1>
 
----
+<p align="center">
+  <strong>Visual multi-agent orchestration on an infinite canvas.</strong><br />
+  Drag AI agents, wire data flows, and watch multi-model teams execute in real-time.
+</p>
 
-## Table of contents
-
-1. [How it works](#how-it-works)
-2. [Architecture](#architecture)
-3. [Tech stack](#tech-stack)
-4. [Prerequisites](#prerequisites)
-5. [Getting started](#getting-started)
-6. [Environment variables](#environment-variables)
-7. [Running with Docker (recommended)](#running-with-docker-recommended)
-8. [Running without Docker](#running-without-docker)
-9. [API reference](#api-reference)
-10. [SSE event protocol](#sse-event-protocol)
-11. [Project structure](#project-structure)
-12. [Testing](#testing)
-13. [How the DAG executor works](#how-the-dag-executor-works)
-14. [LLM judge nodes](#llm-judge-nodes)
+<p align="center">
+  <a href="https://agentcanvas-pi.vercel.app">Live Demo</a> &middot;
+  <a href="#features">Features</a> &middot;
+  <a href="#architecture">Architecture</a> &middot;
+  <a href="#getting-started">Getting Started</a>
+</p>
 
 ---
 
-## How it works
+## The Problem
 
-1. **Create a sandbox.** Name your workspace and optionally set global context (shared variables all agents can access).
-2. **Drag agents onto the canvas.** Each agent node has a name, a system prompt (role), a model provider (ChatGPT or Claude), a specific model, and a temperature setting. Templates for common roles (Researcher, Writer, Critic) are provided in the sidebar palette.
-3. **Wire agents together.** Draw directed edges from one agent's output port to another's input port. The graph must be a DAG (no cycles). Connect at least one agent to the Collector.
-4. **Run the pipeline.** Hit "Run pipeline" or press `Ctrl+Enter`. The backend resolves the topological order of the graph, executes independent branches in parallel, streams token-by-token output back to the canvas via Server-Sent Events, and finally runs the Collector to produce a synthesized result.
-5. **Review results.** Click any agent node to see its output in the Inspector panel. Click the Collector to see the final merged report rendered as readable text.
+Modern AI workflows often involve multiple specialized models working together: one agent researches, another writes, a third validates. But orchestrating this is painful. You either chain prompts in a script, wrestle with complex frameworks, or lose visibility into what each agent is doing.
+
+**AgentCanvas makes one person's hard day easier**: the developer, researcher, or content creator who needs to coordinate multiple AI agents but wants to *see* the pipeline, *configure* each node visually, and *watch* results stream in live rather than staring at terminal logs.
+
+## Features
+
+### Visual DAG Builder
+Drag agent nodes onto an infinite canvas powered by React Flow. Connect them with edges to define data flow. The graph is validated as a Directed Acyclic Graph before execution.
+
+### Multi-Model Agents
+Each node picks its own LLM provider and model. Mix Claude (Anthropic) and GPT-4o (OpenAI) on the same canvas. Configure temperature, output format, and system prompts per node.
+
+### Live Token Streaming
+Watch agents think in real-time. Token-by-token output streams into each node via Server-Sent Events. Status indicators (idle / running / done / error) update live on the canvas.
+
+### Smart Collector
+A special synthesis node at the end of the pipeline. The Collector receives outputs from all directly connected upstream agents and produces a final merged result using its own LLM call.
+
+### Typed Pipelines
+Every node's input and output passes through Pydantic validation. Structured data flows between agents — no string parsing, no prompt hacking.
+
+### Parallel Execution
+Independent branches of the DAG execute concurrently via Python's `asyncio.gather()`. Your pipeline is only as slow as its longest critical path.
+
+### Sandbox Workspaces
+Each project lives in its own sandbox with persistent graph state, run history, and autosave. Create, open, and manage multiple sandboxes from the dashboard.
+
+### Dark & Light Mode
+Full theme support with a toggle in the UI. The entire interface — canvas, nodes, panels, landing page — adapts seamlessly.
 
 ---
 
 ## Architecture
 
 ```
-Browser (React + ReactFlow + Zustand)
-  |
-  |  POST /runs  ──>  FastAPI backend
-  |  GET  /runs/{id}/events  ──>  SSE stream
-  |
-  v
-FastAPI (Python 3.12, async)
-  |
-  ├── DAG executor (topological sort + asyncio.gather for parallel layers)
-  |     |
-  |     ├── PydanticAI Agent (OpenAI)   ─── streams tokens back via SSE
-  |     ├── PydanticAI Agent (Anthropic) ─── streams tokens back via SSE
-  |     ├── Optional LLM Judge (scores output, retries if below threshold)
-  |     └── Collector Agent (synthesizes direct inputs into final report)
-  |
-  ├── SQLite (default) or PostgreSQL (Docker Compose)
-  |     ├── Users, Sandboxes, Runs, Node I/O
-  |     └── Alembic migrations
-  |
-  └── pydantic-settings loads .env automatically
+┌─────────────────────────────────────────────────────┐
+│                    React SPA                         │
+│  React 18 · React Flow (XY Flow) · Zustand · Vite  │
+│  Tailwind CSS · TypeScript                          │
+└──────────────────┬──────────────────────────────────┘
+                   │  POST /runs
+                   │  GET /runs/{id}/events (SSE)
+                   │  CRUD /sandboxes
+┌──────────────────▼──────────────────────────────────┐
+│                 FastAPI Backend                       │
+│  Python 3.12 · PydanticAI · SQLModel · Alembic      │
+│  JWT Auth · Async DAG Executor                       │
+└──────────────────┬──────────────────────────────────┘
+                   │
+        ┌──────────┼──────────┐
+        ▼          ▼          ▼
+   PostgreSQL   Anthropic   OpenAI
+                  API        API
 ```
 
-The frontend Vite dev server proxies all API calls (`/runs`, `/health`, `/graph`, `/providers`, etc.) to the backend at `localhost:8000`. In production (Docker), the backend serves the compiled frontend from `frontend/dist` as static files.
+### Execution Flow
+
+1. The frontend serializes the canvas graph into a `PipelineGraph` payload and sends `POST /runs`.
+2. The backend validates the graph, resolves topological order, and identifies independent branches.
+3. Agents execute in dependency order. Independent branches run in parallel via `asyncio.gather()`.
+4. Each agent streams token chunks back to the frontend via SSE events.
+5. The Collector node runs last, merging upstream outputs into a final synthesized result.
+6. All outputs are persisted per-run for history and inspection.
+
+### SSE Event Protocol
+
+```json
+{ "type": "node_start",    "node_id": "researcher" }
+{ "type": "token_chunk",   "node_id": "researcher", "chunk": "Atomic structures..." }
+{ "type": "node_complete", "node_id": "researcher", "output": { ... } }
+{ "type": "node_error",    "node_id": "researcher", "error": "Rate limit" }
+{ "type": "run_complete",  "collector_output": { ... } }
+```
 
 ---
 
-## Tech stack
+## Tech Stack
 
-### Backend
-
-| Component       | Technology                                                |
-| --------------- | --------------------------------------------------------- |
-| Framework       | FastAPI (async Python)                                    |
-| Agent execution | PydanticAI (`pydantic-ai-slim[openai,anthropic]`)         |
-| Data validation | Pydantic v2 + SQLModel                                    |
-| Database        | PostgreSQL 16 (Docker) or SQLite (local fallback)         |
-| Migrations      | Alembic                                                   |
-| Auth            | JWT via python-jose (disabled by default for development) |
-| Streaming       | Server-Sent Events (SSE)                                  |
-| Python version  | 3.10+ required, 3.12 in Docker                            |
-
-### Frontend
-
-| Component          | Technology                  |
-| ------------------ | --------------------------- |
-| Framework          | React 18 + TypeScript       |
-| Canvas             | ReactFlow / XY Flow v12     |
-| State management   | Zustand                     |
-| Styling            | Tailwind CSS                |
-| Build tool         | Vite                        |
-| Markdown rendering | react-markdown + remark-gfm |
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Vite 5, Tailwind CSS 3, React Flow (XY Flow) 12, Zustand 5, React Router 7 |
+| **Backend** | Python 3.12, FastAPI, PydanticAI, Pydantic, SQLModel |
+| **Database** | PostgreSQL 16 (via psycopg), Alembic migrations |
+| **Auth** | JWT (python-jose), passlib |
+| **LLM Providers** | Anthropic (Claude), OpenAI (GPT-4o) via PydanticAI |
+| **Deployment** | Vercel (frontend + serverless API), Docker Compose (local) |
 
 ---
 
-## Prerequisites
+## Getting Started
 
-- **Docker Desktop** (recommended path; handles Python, Node, and Postgres for you)
-- OR: **Python 3.10+** and **Node.js 18+** installed locally
-- At least one LLM API key: **OpenAI** (`OPENAI_API_KEY`) or **Anthropic** (`ANTHROPIC_API_KEY`)
+### Prerequisites
 
----
+- **Python 3.10+** and **Node.js 18+** (or Docker)
+- At least one LLM API key: `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+- PostgreSQL (provided via Docker Compose, or bring your own)
 
-## Getting started
-
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/cursor-hackathon-SuburbanFlow.git
+git clone https://github.com/BartmossMurphy2077/cursor-hackathon-SuburbanFlow.git
 cd cursor-hackathon-SuburbanFlow
 ```
 
-### 2. Create the environment file
+### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` in your editor and fill in at least one API key:
+Edit `.env` and add your API keys:
 
-```dotenv
-# At least one of these is required for agents to work:
-OPENAI_API_KEY=sk-proj-your-key-here
-ANTHROPIC_API_KEY=sk-ant-your-key-here
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
 
-# Leave these as-is unless you want different default models:
-DEFAULT_ANTHROPIC_MODEL=claude-sonnet-4-20250514
-DEFAULT_OPENAI_MODEL=gpt-4o-mini
-
-# Keep auth disabled for local development:
+# Set AUTH_DISABLED=1 for local development without login
 AUTH_DISABLED=1
 ```
 
----
-
-## Environment variables
-
-| Variable                  | Required         | Default                      | Description                                                                      |
-| ------------------------- | ---------------- | ---------------------------- | -------------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`          | At least one key | (none)                       | OpenAI API key for ChatGPT agents                                                |
-| `ANTHROPIC_API_KEY`       | At least one key | (none)                       | Anthropic API key for Claude agents                                              |
-| `DEFAULT_OPENAI_MODEL`    | No               | `gpt-4o-mini`                | Fallback model when a node does not specify one                                  |
-| `DEFAULT_ANTHROPIC_MODEL` | No               | `claude-sonnet-4-20250514`   | Fallback model for Anthropic nodes                                               |
-| `AUTH_DISABLED`           | No               | `0`                          | Set to `1` to bypass JWT auth (auto-creates a dev user)                          |
-| `JWT_SECRET`              | No               | (internal default)           | Secret for signing JWT tokens; change in production                              |
-| `DATABASE_URL`            | No               | `sqlite:///./agentcanvas.db` | Database connection string; Docker Compose sets this to PostgreSQL automatically |
-
----
-
-## Running with Docker (recommended)
-
-This is the simplest path. Docker Compose starts PostgreSQL, builds the frontend, installs Python dependencies, runs Alembic migrations, and launches the API.
-
-```bash
-# Make sure .env exists and has your API key(s)
-docker compose up --build
-```
-
-Once you see `Uvicorn running on http://0.0.0.0:8000`, open:
-
-| URL                            | What                              |
-| ------------------------------ | --------------------------------- |
-| `http://localhost:8000`        | Full application (frontend + API) |
-| `http://localhost:8000/docs`   | Interactive Swagger API docs      |
-| `http://localhost:8000/health` | Health check                      |
-
-To stop:
-
-```bash
-docker compose down
-```
-
-To wipe the database and start fresh:
-
-```bash
-docker compose down -v
-docker compose up --build
-```
-
----
-
-## Running without Docker
-
-Use two terminals. This mode uses SQLite (no Postgres needed) and the Vite dev server for hot-reload on the frontend.
-
-### Terminal 1: backend
-
-```bash
-# Create and activate a virtual environment (Python 3.10+)
-python -m venv .venv
-
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# Install dependencies
-pip install -r backend_or_api/requirements.txt
-
-# Start the API (auto-creates SQLite DB and runs migrations)
-uvicorn backend_or_api.app.main:app --reload
-```
-
-The API is now at `http://localhost:8000`.
-
-### Terminal 2: frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend is now at `http://localhost:5173`. It proxies API calls to `localhost:8000` automatically via the Vite config.
-
-### Troubleshooting: Vite EPERM error on Windows
+### 3a. Run with Docker (Recommended)
 
 If you see `EPERM: operation not permitted, rmdir ... .vite/deps`, this is a Windows/OneDrive file-lock issue. Fix:
 
@@ -220,237 +150,188 @@ Remove-Item -Recurse -Force "frontend/node_modules/.vite" -ErrorAction SilentlyC
 npm --prefix frontend run dev -- --force
 ```
 
-The Vite config already moves the cache to `%LOCALAPPDATA%/AgentCanvas/vite-cache` to reduce this.
+Open [http://localhost:8000](http://localhost:8000). The frontend and API are both served from port 8000.
 
----
+### 3b. Run without Docker
 
-## API reference
-
-All endpoints are documented interactively at `http://localhost:8000/docs` (Swagger UI).
-
-### Core endpoints
-
-| Method | Path                    | Description                                                          |
-| ------ | ----------------------- | -------------------------------------------------------------------- |
-| `POST` | `/runs`                 | Start a pipeline run. Body: `RunRequest` JSON. Returns `{ run_id }`. |
-| `GET`  | `/runs/{run_id}`        | Get run snapshot (status, outputs, errors, collector output).        |
-| `GET`  | `/runs/{run_id}/events` | SSE stream of real-time execution events.                            |
-| `POST` | `/runs/{run_id}/resume` | Resume a failed run from where it stopped.                           |
-| `POST` | `/graph/validate`       | Validate a pipeline graph (cycle detection, structure).              |
-| `GET`  | `/health`               | Health check.                                                        |
-| `GET`  | `/providers`            | Which LLM providers have keys configured (booleans only).            |
-| `GET`  | `/models/defaults`      | Default model IDs for each provider.                                 |
-
-### Auth endpoints (when `AUTH_DISABLED=0`)
-
-| Method | Path             | Description                |
-| ------ | ---------------- | -------------------------- |
-| `POST` | `/auth/register` | Create a new user account. |
-| `POST` | `/auth/login`    | Get a JWT access token.    |
-| `GET`  | `/auth/me`       | Get current user info.     |
-
-### Sandbox endpoints
-
-| Method   | Path              | Description                          |
-| -------- | ----------------- | ------------------------------------ |
-| `GET`    | `/sandboxes`      | List sandboxes for the current user. |
-| `POST`   | `/sandboxes`      | Create a new sandbox.                |
-| `GET`    | `/sandboxes/{id}` | Get sandbox details.                 |
-| `PUT`    | `/sandboxes/{id}` | Update sandbox (name, canvas state). |
-| `DELETE` | `/sandboxes/{id}` | Delete sandbox and all runs.         |
-
----
-
-## SSE event protocol
-
-When connected to `GET /runs/{run_id}/events`, the server pushes these event types:
-
-| Event type      | Fields                          | Description                                     |
-| --------------- | ------------------------------- | ----------------------------------------------- |
-| `node_start`    | `node_id`                       | Agent started executing                         |
-| `node_input`    | `node_id`, `input`              | Full assembled prompt sent to the LLM           |
-| `token_chunk`   | `node_id`, `chunk`              | Streamed text fragment from the LLM             |
-| `node_complete` | `node_id`, `output`             | Agent finished; validated output attached       |
-| `judge_verdict` | `node_id`, `attempt`, `verdict` | LLM judge scored the output                     |
-| `node_error`    | `node_id`, `error`              | Agent or judge failed                           |
-| `run_complete`  | `collector_output`              | Pipeline finished; collector synthesis attached |
-| `stream_end`    | (none)                          | SSE stream is closing                           |
-
-Late-connecting clients replay all events from the start of the run (event log with replay pattern).
-
----
-
-## Project structure
-
-```
-cursor-hackathon-SuburbanFlow/
-  backend_or_api/
-    app/
-      main.py                  FastAPI app entry, router mounts, SPA serving
-      config.py                pydantic-settings (loads .env)
-      database.py              SQLModel engine, Alembic migration runner
-      db_models.py             SQLModel ORM tables (User, Sandbox, Run, etc.)
-      state.py                 In-memory SSE event log + tick queues
-      deps.py                  FastAPI dependency injection (auth, DB session)
-      models/
-        graph.py               Pydantic: AgentNode, Edge, CollectorNode, PipelineGraph
-        judge.py               Pydantic: JudgeConfig, JudgeVerdict
-        run.py                 Pydantic: RunRequest, RunSnapshot
-        auth.py                Pydantic: auth request/response models
-        sandbox.py             Pydantic: sandbox request/response models
-      agents/
-        base.py                BaseSandboxAgent (PydanticAI streaming execution)
-        factory.py             create_sandbox_agent() factory
-        pydantic_sandbox_agent.py  Concrete agent using PydanticAI
-        resolution.py          Resolve model name from node config + defaults
-        protocols.py           LLMClient protocol (abstraction)
-        clients/               Raw SDK wrappers (OpenAI, Anthropic)
-      pai/
-        builders.py            build_canvas_agent(), build_judge_agent()
-      judges/
-        llm_judge.py           LLMJudgeService (PydanticAI agent with JudgeVerdict output)
-        verdict_parser.py      Parse judge JSON (handles markdown fences)
-      services/
-        dag.py                 topological_layers(), upstream_outputs()
-        executor.py            run_dag_pipeline() — full DAG orchestration
-      routers/
-        runs.py                POST /runs, GET /runs/{id}, SSE events, resume
-        graph.py               POST /graph/validate
-        health.py              GET /health
-        meta.py                GET /providers, GET /models/defaults
-        auth.py                POST /auth/register, /auth/login, /auth/me
-        sandboxes.py           CRUD for sandboxes
-    alembic/                   Database migration scripts
-    requirements.txt           Python dependencies
-    requirements-dev.txt       Test dependencies (pytest, httpx, etc.)
-  frontend/
-    src/
-      main.tsx                 React entry point
-      App.tsx                  Router + layout
-      lib/
-        graph.ts               Graph types, validation, payload builder
-        api.ts                 authFetch() + SSE URL helpers
-      stores/
-        canvasStore.ts         Zustand: nodes, edges, selection, editing
-        runStore.ts            Zustand: run state, SSE event dispatcher
-        authStore.ts           Zustand: JWT token, login/logout
-      components/
-        FlowCanvas.tsx         ReactFlow canvas with drag-and-drop
-        Toolbar.tsx             Run button, sandbox name, global prompt
-        Inspector.tsx          Node config panel (provider, model, temp, output)
-        Palette.tsx            Draggable agent templates sidebar
-        CollectorOutputView.tsx Final output renderer
-        EventsLog.tsx          Raw SSE event log viewer
-      nodes/
-        AgentNode.tsx          Custom ReactFlow node (compact, status badge)
-        CollectorNode.tsx      Custom ReactFlow collector node
-      pages/
-        WorkspacePage.tsx      Main canvas workspace
-        DashboardPage.tsx      Sandbox list / management
-        LoginPage.tsx          Auth login page
-        SignupPage.tsx         Auth signup page
-    vite.config.ts             Vite config with API proxy
-    tailwind.config.js         Tailwind theme (dark mode, canvas colors)
-    package.json               Frontend dependencies
-  tests/
-    conftest.py                Loads .env for test session
-    test_api.py                Health, providers, graph validation endpoints
-    test_dag.py                Topological sort, cycle detection
-    test_executor_mocked.py    DAG execution with fake agents (no LLM calls)
-    test_judge_parser.py       Judge verdict JSON parsing
-    test_openai_integration.py Live PydanticAI + OpenAI smoke test
-    test_runs_integration.py   Live POST /runs + SSE end-to-end
-    test_judge_integration.py  Live judge gate with retries
-  .env.example                 Template environment file
-  docker-compose.yml           Docker Compose (Postgres + API)
-  Dockerfile                   Multi-stage build (Node frontend + Python backend)
-  pyproject.toml               Project metadata
-  alembic.ini                  Alembic configuration
-```
-
----
-
-## Testing
-
-### Unit tests (no API keys needed)
+**Backend:**
 
 ```bash
-pip install -r backend_or_api/requirements-dev.txt
-pytest tests -v -m "not integration"
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -r backend_or_api/requirements.txt
+uvicorn backend_or_api.app.main:app --reload --port 8000
 ```
 
-Tests DAG logic, graph validation, judge JSON parsing, mocked pipeline execution, and HTTP endpoint wiring.
-
-### Integration tests (requires API keys)
-
-These make real LLM calls. Ensure `.env` has a valid `OPENAI_API_KEY`.
+**Frontend (separate terminal):**
 
 ```bash
-pytest tests -v -m integration
+cd frontend
+npm install
+npm run dev
 ```
 
-Tests: live PydanticAI agent call, full `POST /runs` end-to-end with SSE, judge retry loop.
+The frontend dev server runs on [http://localhost:5173](http://localhost:5173) and proxies API requests to port 8000.
 
-### All tests
+---
 
-```bash
-pytest tests -v
+## Project Structure
+
 ```
-
-### Running tests in Docker (Python 3.12)
-
-```bash
-docker run --rm -v "${PWD}:/app" -w /app python:3.12-slim bash -c \
-  "pip install -q -r backend_or_api/requirements.txt -r backend_or_api/requirements-dev.txt && pytest tests -v"
+├── api/
+│   └── index.py                  # Vercel serverless entrypoint
+├── backend_or_api/
+│   ├── app/
+│   │   ├── main.py               # FastAPI app, static file serving, SPA catch-all
+│   │   ├── agents/               # PydanticAI agent wrappers (base, factory, clients)
+│   │   ├── services/
+│   │   │   ├── executor.py       # Async DAG executor with parallel branch support
+│   │   │   └── dag.py            # Topological sort and dependency resolution
+│   │   ├── routers/              # FastAPI route handlers (runs, sandboxes, auth, etc.)
+│   │   ├── models/               # Pydantic request/response models
+│   │   ├── db_models.py          # SQLModel database tables
+│   │   └── judges/               # LLM-as-judge evaluation (optional)
+│   ├── alembic/                  # Database migrations
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx               # Route definitions
+│   │   ├── pages/                # LandingPage, LoginPage, DashboardPage, WorkspacePage
+│   │   ├── nodes/                # AgentNode, CollectorNode (React Flow custom nodes)
+│   │   ├── components/           # Toolbar, Inspector, Palette, EventsLog, etc.
+│   │   ├── stores/               # Zustand stores (auth, canvas, run, theme)
+│   │   └── lib/                  # API helpers, graph validation
+│   ├── tailwind.config.js
+│   └── package.json
+├── docs/
+│   ├── IDEA.md                   # Full product concept and architecture proposals
+│   ├── ARCHITECTURE.md           # System architecture diagrams and decisions
+│   └── CHALLENGE.md              # Hackathon challenge brief
+├── docker-compose.yml
+├── Dockerfile                    # Multi-stage: Node build + Python runtime
+├── vercel.json                   # Vercel deployment config with API rewrites
+└── .env.example
 ```
 
 ---
 
-## How the DAG executor works
+## API Reference
 
-The executor in `services/executor.py` orchestrates the full pipeline:
+### Runs
 
-1. **Topological sort** (`services/dag.py`): Kahn's algorithm groups nodes into layers. Nodes in the same layer have no dependencies on each other.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/runs` | Start a pipeline run. Body: `{ sandbox_id, prompt, graph }`. Returns `{ run_id }`. |
+| `GET` | `/runs/{run_id}/events` | SSE stream of execution events (token chunks, status updates). |
+| `GET` | `/runs/{run_id}` | Get run snapshot with status and outputs. |
 
-2. **Parallel execution**: Each layer runs via `asyncio.gather()`. If layer 2 has agents B and C (both depending only on A from layer 1), B and C execute their LLM calls concurrently.
+### Sandboxes
 
-3. **Agent construction**: For each node, `create_sandbox_agent()` calls `build_canvas_agent()` which creates a PydanticAI `Agent` with the node's provider, model, system prompt, temperature, and output type.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/sandboxes` | Create a new sandbox. |
+| `GET` | `/sandboxes` | List all sandboxes for the authenticated user. |
+| `GET` | `/sandboxes/{id}` | Get sandbox details. |
+| `PATCH` | `/sandboxes/{id}` | Update sandbox name/description. |
+| `DELETE` | `/sandboxes/{id}` | Delete sandbox and all associated runs. |
+| `GET` | `/sandboxes/{id}/graph` | Get the saved pipeline graph. |
+| `PATCH` | `/sandboxes/{id}/graph` | Update (autosave) the pipeline graph. |
+| `GET` | `/sandboxes/{id}/runs` | List runs for a sandbox. |
 
-4. **Streaming**: `BaseSandboxAgent.run()` opens a PydanticAI `run_stream()` session. Token fragments are forwarded through the `on_event` callback chain to the SSE endpoint in real time.
+### Auth
 
-5. **Data passing**: When an agent completes, its validated output is stored in the `outputs` dict. Downstream agents receive their upstream outputs as serialized JSON in their user prompt, along with the global context and user instruction.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/auth/register` | Create a new account. Returns JWT. |
+| `POST` | `/auth/login` | Sign in. Returns JWT. |
 
-6. **Collector**: After all agent layers complete, the collector runs as a dedicated agent. It receives only the outputs from agents directly connected to it (not all agents), synthesizes them, and produces the final report.
+### Health
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Service health check. Returns `{ "status": "ok" }`. |
 
 ---
 
-## LLM judge nodes
+## Deployment
 
-Any agent node can optionally have a `judge` configuration. When enabled:
+### Vercel
 
-1. After the agent produces output, a separate PydanticAI `Agent` with `output_type=JudgeVerdict` evaluates the output against the specified criteria.
-2. The verdict includes `passed` (bool), `score` (0.0-1.0), and `feedback` (string).
-3. If the score is below `min_score`, the original agent re-runs with the judge's feedback appended to the prompt.
-4. This retry loop continues up to `max_retries` times.
-5. If all attempts fail the judge gate, the node errors and the pipeline stops.
+The project is configured for Vercel deployment:
 
-Judge configuration is set per-node in the run payload:
-
-```json
-{
-  "judge": {
-    "enabled": true,
-    "criteria": "Output must contain at least 3 cited sources.",
-    "provider": "openai",
-    "model": "gpt-4o-mini",
-    "min_score": 0.7,
-    "max_retries": 2
-  }
-}
+```bash
+vercel --prod
 ```
+
+`vercel.json` handles:
+- Frontend build: `cd frontend && npm ci && npm run build`
+- Static file serving from `frontend/dist`
+- API route rewrites to `/api/index.py` (Python serverless function)
+- SPA catch-all for client-side routing
+- Cache headers to prevent stale asset issues
+
+Required Vercel environment variables:
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `DATABASE_URL` (PostgreSQL connection string)
+- `JWT_SECRET`
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+The `Dockerfile` is a multi-stage build:
+1. **Stage 1** (Node): Builds the React frontend
+2. **Stage 2** (Python): Installs backend dependencies, copies the built frontend, runs uvicorn
+
+---
+
+## Example Pipeline
+
+```
+┌──────────────┐     ┌──────────────┐
+│  Researcher  │────▶│    Writer    │
+│  (GPT-4o)    │     │  (Claude)    │
+└──────┬───────┘     └──────┬───────┘
+       │                    │
+       │    ┌───────────────┘
+       │    │
+       ▼    ▼
+  ┌────────────┐
+  │  Collector  │
+  │  (Claude)   │
+  └────────────┘
+```
+
+1. **Researcher** uses GPT-4o to produce a structured research summary.
+2. **Writer** takes the research output and drafts a report using Claude.
+3. **Collector** merges everything into a final polished document.
+
+Each agent streams its output live to the canvas. The entire pipeline runs in seconds.
+
+---
+
+## Contributing
+
+This project was built for the **Cursor Hackathon at IE University (March 2026)**.
+
+To contribute:
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/your-feature`)
+3. Commit your changes
+4. Push to the branch and open a Pull Request
 
 ---
 
 ## License
 
-Built during the Cursor Hackathon at IE University, March 2026.
+This project is provided as-is for the hackathon. See the repository for licensing details.
+
+---
+
+<p align="center">
+  <sub>Built with Cursor, PydanticAI, and FastAPI</sub>
+</p>

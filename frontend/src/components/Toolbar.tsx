@@ -62,7 +62,7 @@ export function Toolbar() {
   const nodes = useCanvasStore((s) => s.nodes);
   const edges = useCanvasStore((s) => s.edges);
   const globalContextJson = useCanvasStore((s) => s.globalContextJson);
-  const setGlobalContextJson = useCanvasStore((s) => s.setGlobalContextJson);
+
   const showToast = useCanvasStore((s) => s.showToast);
   const loadDemo = useCanvasStore((s) => s.loadDemo);
 
@@ -191,15 +191,6 @@ export function Toolbar() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="What should this graph accomplish?"
-        />
-      </label>
-      <label className="ac-label flex w-44 flex-col font-mono normal-case">
-        Context JSON
-        <input
-          className="ac-input font-mono text-xs normal-case"
-          value={globalContextJson}
-          onChange={(e) => setGlobalContextJson(e.target.value)}
-          title="global_context object sent with the run"
         />
       </label>
       <div className="ml-auto flex items-center gap-2">
