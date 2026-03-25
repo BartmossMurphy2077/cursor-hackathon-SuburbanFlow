@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme CSS variables ─────────────────────────────────────── */
+:root {
+  --ac-bg: #090b0f;
+  --ac-elevated: #0f1219;
+  --ac-border: rgba(255, 255, 255, 0.08);
+  --ac-ink: #e2e8f0;
+  --ac-muted: #94a3b8;
+  --ac-accent: #2dd4bf;
+  --ac-surface: rgba(0, 0, 0, 0.25);
+  --ac-surface-hover: rgba(255, 255, 255, 0.06);
+  --ac-code-bg: rgba(255, 255, 255, 0.06);
+  --ac-scrollbar: rgba(148, 163, 184, 0.2);
+  --ac-scrollbar-hover: rgba(148, 163, 184, 0.35);
+  --ac-minimap-mask: rgba(9, 11, 15, 0.85);
+  --ac-node-bg: #0f1219;
+  --ac-node-bg-from: #141a24;
+  --ac-node-bg-to: #0b0e14;
+}
+
+.light {
+  --ac-bg: #f8fafc;
+  --ac-elevated: #ffffff;
+  --ac-border: rgba(0, 0, 0, 0.1);
+  --ac-ink: #1e293b;
+  --ac-muted: #64748b;
+  --ac-accent: #0d9488;
+  --ac-surface: rgba(0, 0, 0, 0.04);
+  --ac-surface-hover: rgba(0, 0, 0, 0.08);
+  --ac-code-bg: rgba(0, 0, 0, 0.05);
+  --ac-scrollbar: rgba(100, 116, 139, 0.25);
+  --ac-scrollbar-hover: rgba(100, 116, 139, 0.4);
+  --ac-minimap-mask: rgba(248, 250, 252, 0.8);
+  --ac-node-bg: #ffffff;
+  --ac-node-bg-from: #ffffff;
+  --ac-node-bg-to: #f1f5f9;
+}
+
 html,
 body,
 #root {
@@ -10,51 +47,91 @@ body,
 }
 
 body {
-  @apply bg-canvas-bg bg-app-radial bg-fixed text-canvas-ink antialiased;
+  background-color: var(--ac-bg);
+  color: var(--ac-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark-themed scrollbars that match the canvas UI */
+.dark body {
+  background-image:
+    radial-gradient(ellipse 100% 70% at 50% -15%, rgba(45, 212, 191, 0.14), transparent 52%),
+    radial-gradient(ellipse 60% 45% at 100% 0%, rgba(56, 189, 248, 0.08), transparent 50%);
+  background-attachment: fixed;
+}
+
+/* ── Scrollbars ─────────────────────────────────────────────── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+  scrollbar-color: var(--ac-scrollbar) transparent;
 }
 
-*::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--ac-scrollbar); border-radius: 9999px; }
+*::-webkit-scrollbar-thumb:hover { background: var(--ac-scrollbar-hover); }
+
+/* ── React Flow variable overrides ──────────────────────────── */
+/* Dark: .react-flow.dark beats the library's .react-flow defaults */
+.react-flow.dark {
+  --xy-background-color: transparent !important;
+  --xy-node-background-color: #0f1219 !important;
+  --xy-node-border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  --xy-controls-button-background-color: #0f1219 !important;
+  --xy-controls-button-background-color-hover: #1a2230 !important;
+  --xy-controls-button-color: #2dd4bf !important;
+  --xy-controls-button-color-hover: #e2e8f0 !important;
+  --xy-controls-button-border-color: rgba(45, 212, 191, 0.2) !important;
+  --xy-controls-box-shadow: 0 0 0 1px rgba(45, 212, 191, 0.15), 0 8px 32px rgba(0, 0, 0, 0.35) !important;
+  --xy-minimap-background-color: #0f1219 !important;
+  --xy-minimap-mask-background-color: rgba(9, 11, 15, 0.75) !important;
+  --xy-minimap-node-background-color: rgba(45, 212, 191, 0.35) !important;
+  --xy-handle-background-color: #0f1219 !important;
+  --xy-handle-border-color: rgba(45, 212, 191, 0.5) !important;
 }
 
-*::-webkit-scrollbar-track {
-  background: transparent;
+/* Light: when .light is on <html> the ReactFlow has no .dark class */
+.light .react-flow {
+  --xy-background-color: transparent !important;
+  --xy-node-background-color: #ffffff !important;
+  --xy-node-border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  --xy-controls-button-background-color: #ffffff !important;
+  --xy-controls-button-background-color-hover: #f1f5f9 !important;
+  --xy-controls-button-color: #0d9488 !important;
+  --xy-controls-button-color-hover: #1e293b !important;
+  --xy-controls-button-border-color: rgba(13, 148, 136, 0.2) !important;
+  --xy-controls-box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.1), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  --xy-minimap-background-color: #ffffff !important;
+  --xy-minimap-mask-background-color: rgba(248, 250, 252, 0.7) !important;
+  --xy-minimap-node-background-color: rgba(13, 148, 136, 0.4) !important;
+  --xy-handle-background-color: #ffffff !important;
+  --xy-handle-border-color: rgba(13, 148, 136, 0.5) !important;
 }
 
-*::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
-  border-radius: 9999px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.35);
-}
-
-.react-flow__background {
-  @apply bg-transparent;
-}
-
+/* Additional React Flow cosmetic styling */
 .react-flow__controls {
-  @apply overflow-hidden rounded-xl border border-canvas-border bg-canvas-elevated/90 shadow-bar backdrop-blur-md;
+  border-radius: 12px !important;
+  border: 1px solid rgba(45, 212, 191, 0.35) !important;
+  overflow: hidden !important;
+  backdrop-filter: blur(12px);
 }
 
-.react-flow__controls-button {
-  @apply border-canvas-border bg-transparent fill-slate-400 transition hover:bg-white/5 hover:fill-slate-200;
+.light .react-flow__controls {
+  border-color: rgba(13, 148, 136, 0.3) !important;
 }
 
-.react-flow__minimap-mask {
-  fill: rgba(9, 11, 15, 0.65);
+.react-flow__controls-button svg {
+  fill: currentColor !important;
 }
 
 .react-flow__minimap {
-  @apply rounded-lg;
+  border-radius: 12px !important;
+  border: 1px solid rgba(45, 212, 191, 0.3) !important;
+  overflow: hidden !important;
+}
+
+.light .react-flow__minimap {
+  border-color: rgba(13, 148, 136, 0.25) !important;
 }
 
 .react-flow__edge-path {
@@ -70,23 +147,140 @@ body {
   height: 8px !important;
   border-radius: 2px !important;
   border: 1px solid rgba(45, 212, 191, 0.5) !important;
-  background: #0f1219 !important;
+  background: var(--ac-elevated) !important;
 }
 
+/* ── Handle styling ─────────────────────────────────────────── */
+.ac-handle {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 4px !important;
+  border: 2px solid var(--ac-border) !important;
+  background: var(--ac-elevated) !important;
+  transition: all 0.2s ease;
+}
+
+.ac-handle-target {
+  border-color: rgba(56, 189, 248, 0.5) !important;
+}
+
+.ac-handle-source {
+  border-color: rgba(45, 212, 191, 0.5) !important;
+}
+
+.ac-handle:hover {
+  transform: scale(1.35);
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.5);
+  border-color: var(--ac-accent) !important;
+}
+
+.ac-handle-label {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.ac-handle:hover .ac-handle-label { opacity: 1; }
+.ac-handle-label-left { right: calc(100% + 6px); color: #38bdf8; }
+.ac-handle-label-right { left: calc(100% + 6px); color: #2dd4bf; }
+
+.react-flow__handle.connecting {
+  box-shadow: 0 0 16px rgba(45, 212, 191, 0.6) !important;
+  border-color: var(--ac-accent) !important;
+}
+
+.react-flow__connection-path {
+  stroke: var(--ac-accent);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 3;
+}
+
+/* ── Markdown prose (collector output) ──────────────────────── */
+.collector-prose {
+  color: var(--ac-ink);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.collector-prose h1,
+.collector-prose h2,
+.collector-prose h3 {
+  font-weight: 700;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.collector-prose h1 { font-size: 1.35em; border-bottom: 1px solid var(--ac-border); padding-bottom: 0.3em; }
+.collector-prose h2 { font-size: 1.15em; }
+.collector-prose h3 { font-size: 1em; color: var(--ac-muted); }
+
+.collector-prose p { margin: 0.6em 0; }
+.collector-prose ul, .collector-prose ol { padding-left: 1.5em; margin: 0.5em 0; }
+.collector-prose li { margin: 0.25em 0; }
+.collector-prose li::marker { color: var(--ac-muted); }
+
+.collector-prose code {
+  background: var(--ac-code-bg);
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 0.88em;
+  color: var(--ac-accent);
+}
+
+.collector-prose pre {
+  background: var(--ac-surface);
+  border: 1px solid var(--ac-border);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.collector-prose pre code { background: none; padding: 0; color: var(--ac-muted); }
+
+.collector-prose table { width: 100%; border-collapse: collapse; margin: 0.75em 0; font-size: 0.88em; }
+.collector-prose th, .collector-prose td { border: 1px solid var(--ac-border); padding: 0.4em 0.75em; text-align: left; }
+.collector-prose th { background: var(--ac-surface); font-weight: 600; color: var(--ac-muted); }
+.collector-prose blockquote { border-left: 3px solid rgba(45, 212, 191, 0.4); padding-left: 1em; color: var(--ac-muted); margin: 0.75em 0; }
+.collector-prose a { color: var(--ac-accent); text-decoration: underline; }
+.collector-prose hr { border: none; border-top: 1px solid var(--ac-border); margin: 1em 0; }
+.collector-prose strong { font-weight: 700; }
+
+/* ── Component utility classes ──────────────────────────────── */
 @layer components {
   .ac-input {
-    @apply mt-1 w-full rounded-lg border border-canvas-border bg-black/25 px-2.5 py-1.5 text-sm text-canvas-ink shadow-inner transition placeholder:text-slate-500 focus:border-canvas-accent/40 focus:outline-none focus:ring-2 focus:ring-canvas-accent/15;
+    @apply mt-1 w-full rounded-lg border px-2.5 py-1.5 text-sm shadow-inner transition focus:outline-none focus:ring-2;
+    border-color: var(--ac-border);
+    background: var(--ac-surface);
+    color: var(--ac-ink);
   }
+  .ac-input:focus {
+    border-color: rgba(45, 212, 191, 0.4);
+    --tw-ring-color: rgba(45, 212, 191, 0.15);
+  }
+  .ac-input::placeholder { color: var(--ac-muted); }
   .ac-label {
-    @apply block text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    @apply block text-[11px] font-semibold uppercase tracking-wide;
+    color: var(--ac-muted);
   }
   .ac-panel-header {
-    @apply border-b border-canvas-border px-4 py-3;
+    @apply px-4 py-3;
+    border-bottom: 1px solid var(--ac-border);
   }
   .ac-panel-title {
-    @apply text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400;
+    @apply text-[11px] font-bold uppercase tracking-[0.14em];
+    color: var(--ac-muted);
   }
   .ac-panel-sub {
-    @apply mt-1 text-[11px] text-slate-500;
+    @apply mt-1 text-[11px];
+    color: var(--ac-muted);
   }
 }

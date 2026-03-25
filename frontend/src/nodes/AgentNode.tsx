@@ -3,6 +3,7 @@ import { Handle, NodeResizer, Position, type NodeProps } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 
 import type { AgentData } from "../lib/graph";
+import { stripModelArtifacts } from "../lib/stripArtifacts";
 import { useRunStore } from "../stores/runStore";
 
 export type AgentRFNode = Node<AgentData, "agent">;
@@ -36,13 +37,15 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
   }, [live, expanded]);
 
   const hasContent = !!(live || output);
-  const displayText = output ? JSON.stringify(output, null, 2) : live;
+  const rawDisplay = output ? JSON.stringify(output, null, 2) : live;
+  const displayText = rawDisplay ? stripModelArtifacts(rawDisplay, data.provider) : rawDisplay;
 
   return (
     <div
-      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border bg-gradient-to-b from-white/[0.06] to-black/25 px-3.5 py-2.5 shadow-node backdrop-blur-sm transition-shadow ${
-        selected ? "border-canvas-accent/50 shadow-node-selected" : "border-canvas-border hover:border-white/15"
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border px-3.5 py-2.5 shadow-node transition-shadow ${
+        selected ? "border-canvas-accent/50 shadow-node-selected" : "hover:border-[var(--ac-accent)]"
       }`}
+      style={{ borderColor: selected ? undefined : "var(--ac-border)", backgroundColor: "var(--ac-node-bg)", backgroundImage: "linear-gradient(to bottom, var(--ac-node-bg-from), var(--ac-node-bg-to))" }}
     >
       <NodeResizer
         minWidth={228}
@@ -58,33 +61,37 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
       <Handle
         type="target"
         position={Position.Left}
-        className="!h-3 !w-3 !border-2 !border-canvas-border !bg-canvas-elevated !shadow-inner"
-      />
+        className="ac-handle ac-handle-target"
+      >
+        <span className="ac-handle-label ac-handle-label-left">in</span>
+      </Handle>
 
       {/* Header — fixed */}
-      <div className="flex items-center gap-2.5 border-b border-white/[0.06] pb-2.5">
+      <div className="flex items-center gap-2.5 pb-2.5" style={{ borderBottom: "1px solid var(--ac-border)" }}>
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${statusStyles[status] ?? statusStyles.idle}`} title={status} />
-        <span className="truncate text-[13px] font-semibold tracking-tight text-white">{data.name}</span>
+        <span className="truncate text-[13px] font-semibold tracking-tight" style={{ color: "var(--ac-ink)" }}>{data.name}</span>
       </div>
-      <p className="mt-2 line-clamp-2 shrink-0 text-[11px] leading-snug text-slate-500">{data.role || "—"}</p>
+      <p className="mt-2 line-clamp-2 shrink-0 text-[11px] leading-snug" style={{ color: "var(--ac-muted)" }}>{data.role || "—"}</p>
 
       {/* Streaming preview — grows with the node */}
       <pre
         ref={previewRef}
-        className="nowheel nodrag mt-2 min-h-[4rem] flex-1 overflow-y-auto rounded-lg border border-white/[0.06] bg-black/30 p-2 font-mono text-[10px] leading-relaxed text-slate-400"
+        className="nowheel nodrag mt-2 min-h-[4rem] flex-1 overflow-y-auto rounded-lg border p-2 font-mono text-[10px] leading-relaxed"
+        style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
       >
-        {live || <span className="italic text-slate-600">Waiting for output…</span>}
+        {live ? stripModelArtifacts(live, data.provider) : <span className="italic text-slate-600">Waiting for output…</span>}
       </pre>
 
       {/* Toggle bar for full output dropdown */}
       <button
         type="button"
         onClick={() => hasContent && setExpanded((v) => !v)}
-        className={`nodrag nowheel mt-2 flex w-full shrink-0 items-center justify-between rounded-md border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] font-medium transition-colors ${
+        className={`nodrag nowheel mt-2 flex w-full shrink-0 items-center justify-between rounded-md border px-2 py-1 text-[10px] font-medium transition-colors ${
           hasContent
-            ? "cursor-pointer text-slate-400 hover:bg-white/[0.06] hover:text-slate-300"
-            : "cursor-default text-slate-600"
+            ? "cursor-pointer hover:brightness-110"
+            : "cursor-default opacity-50"
         }`}
+        style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
       >
         <span>Full Output</span>
         <svg
@@ -106,26 +113,29 @@ export function AgentNode({ id, data, selected }: NodeProps<AgentRFNode>) {
       >
         <pre
           ref={expandedRef}
-          className="nowheel nodrag h-48 overflow-y-auto rounded-lg border border-white/[0.06] bg-black/30 p-2 font-mono text-[10px] leading-relaxed text-slate-400"
+          className="nowheel nodrag h-48 overflow-y-auto rounded-lg border p-2 font-mono text-[10px] leading-relaxed"
+          style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}
         >
           {displayText || "No output yet."}
         </pre>
       </div>
 
       {/* Badges — fixed at bottom */}
-      <div className="mt-2 flex shrink-0 flex-wrap gap-1.5 text-[9px] font-medium uppercase tracking-wide text-slate-500">
-        <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 font-mono normal-case text-canvas-accent">
+      <div className="mt-2 flex shrink-0 flex-wrap gap-1.5 text-[9px] font-medium uppercase tracking-wide" style={{ color: "var(--ac-muted)" }}>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-code-bg)", color: "var(--ac-accent)" }}>
           {data.provider === "anthropic" ? "claude" : "chatgpt"}
         </span>
-        <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 font-mono normal-case text-slate-400">{data.model}</span>
-        <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 font-mono normal-case">{data.output_key}</span>
-        <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 font-mono normal-case">{data.output_type}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)", color: "var(--ac-muted)" }}>{data.model}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)" }}>{data.output_key}</span>
+        <span className="rounded-md px-1.5 py-0.5 font-mono normal-case" style={{ background: "var(--ac-surface)" }}>{data.output_type}</span>
       </div>
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-canvas-border !bg-canvas-elevated !shadow-inner"
-      />
+        className="ac-handle ac-handle-source"
+      >
+        <span className="ac-handle-label ac-handle-label-right">out</span>
+      </Handle>
     </div>
   );
 }

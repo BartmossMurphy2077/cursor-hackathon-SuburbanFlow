@@ -1,3 +1,8 @@
+import { useState, useCallback, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { stripModelArtifacts } from "../lib/stripArtifacts";
+
 type CollectorOutputViewProps = {
   collectorOutput: unknown;
 };
@@ -6,122 +11,143 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function toNodeOutputs(value: unknown): Record<string, unknown> {
-  if (!isRecord(value)) return {};
-  if (isRecord(value.final)) return value.final;
-  return value;
-}
-
-function renderValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  if (value === null) return "null";
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
+/**
+ * Recursively collect all string values from a nested object.
+ * Skips keys that are metadata (like "graph") rather than content.
+ */
+function collectStrings(value: unknown, skipKeys = new Set(["graph"])): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap((v) => collectStrings(v, skipKeys));
+  if (isRecord(value)) {
+    const results: string[] = [];
+    for (const [key, val] of Object.entries(value)) {
+      if (skipKeys.has(key)) continue;
+      results.push(...collectStrings(val, skipKeys));
+    }
+    return results;
   }
+  if (typeof value === "number" || typeof value === "boolean") return [String(value)];
+  return [];
 }
 
-function truncate(text: string, max = 360): string {
-  if (text.length <= max) return text;
-  return `${text.slice(0, max)}...`;
+function extractDisplayText(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  const strings = collectStrings(value);
+
+  if (strings.length === 0) {
+    return typeof value === "object"
+      ? JSON.stringify(value, null, 2)
+      : String(value);
+  }
+
+  // If there's only one string and it already looks like markdown, use it directly
+  if (strings.length === 1) return strings[0];
+
+  // Multiple strings: join with section breaks, skip near-duplicates
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const s of strings) {
+    const trimmed = s.trim();
+    if (!trimmed) continue;
+    const fingerprint = trimmed.slice(0, 200);
+    if (seen.has(fingerprint)) continue;
+    seen.add(fingerprint);
+    unique.push(trimmed);
+  }
+
+  return unique.join("\n\n---\n\n");
+}
+
+function downloadBlob(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export function CollectorOutputView({ collectorOutput }: CollectorOutputViewProps) {
+  const [tab, setTab] = useState<"rendered" | "raw">("rendered");
+
+  const displayText = useMemo(
+    () => stripModelArtifacts(extractDisplayText(collectorOutput)),
+    [collectorOutput],
+  );
+  const rawJson = useMemo(
+    () => (typeof collectorOutput === "string" ? collectorOutput : JSON.stringify(collectorOutput, null, 2)),
+    [collectorOutput],
+  );
+
+  const handleDownload = useCallback(() => {
+    const isJson = typeof collectorOutput !== "string" && isRecord(collectorOutput);
+    if (tab === "raw" && isJson) {
+      downloadBlob(rawJson, "collector-output.json");
+    } else {
+      downloadBlob(displayText, "collector-output.md");
+    }
+  }, [tab, collectorOutput, rawJson, displayText]);
+
   if (collectorOutput == null) {
     return (
-      <div className="rounded-xl border border-canvas-border bg-black/20 p-4 text-sm text-slate-500 shadow-inner">
+      <div className="rounded-xl border p-4 text-sm shadow-inner" style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}>
         Run the pipeline to generate the collector result.
       </div>
     );
   }
 
-  const directOutputs = isRecord(collectorOutput) && isRecord(collectorOutput.direct_inputs)
-    ? collectorOutput.direct_inputs
-    : toNodeOutputs(collectorOutput);
-  const referenceOutputs = isRecord(collectorOutput) && isRecord(collectorOutput.reference_outputs)
-    ? collectorOutput.reference_outputs
-    : {};
-  const finalSummary = isRecord(collectorOutput) ? collectorOutput.summary : undefined;
-
-  const directEntries = Object.entries(directOutputs);
-  const totalFields = directEntries.reduce((acc, [, nodeOut]) => {
-    if (!isRecord(nodeOut)) return acc;
-    return acc + Object.keys(nodeOut).length;
-  }, 0);
-
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-canvas-border bg-black/20 px-3 py-2 shadow-inner">
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">Direct inputs</div>
-          <div className="mt-1 text-lg font-semibold text-white">{directEntries.length}</div>
-        </div>
-        <div className="rounded-lg border border-canvas-border bg-black/20 px-3 py-2 shadow-inner">
-          <div className="text-[10px] uppercase tracking-wider text-slate-500">Output fields</div>
-          <div className="mt-1 text-lg font-semibold text-white">{totalFields}</div>
-        </div>
+    <div className="space-y-2">
+      {/* Tab bar + download */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setTab("rendered")}
+          className={`rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+            tab === "rendered"
+              ? "bg-canvas-accent/15 text-canvas-accent ring-1 ring-canvas-accent/30"
+              : "text-slate-500 hover:text-slate-300"
+          }`}
+        >
+          Rendered
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("raw")}
+          className={`rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition ${
+            tab === "raw"
+              ? "bg-canvas-accent/15 text-canvas-accent ring-1 ring-canvas-accent/30"
+              : "text-slate-500 hover:text-slate-300"
+          }`}
+        >
+          Raw
+        </button>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={handleDownload}
+          title="Download output"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-white/[0.06] hover:text-white"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Download
+        </button>
       </div>
 
-      {finalSummary !== undefined ? (
-        <section className="rounded-xl border border-canvas-accent/30 bg-gradient-to-r from-canvas-accent/10 to-transparent p-3 shadow-inner">
-          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-canvas-accent">
-            Collector final summary
-          </div>
-          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-slate-200">
-            {renderValue(finalSummary)}
-          </pre>
-        </section>
-      ) : null}
-
-      {directEntries.length > 0 ? (
-        <div className="space-y-2">
-          {directEntries.map(([nodeId, nodeOut]) => {
-            const fields = isRecord(nodeOut) ? Object.entries(nodeOut) : [["output", nodeOut]];
-            return (
-              <section key={nodeId} className="rounded-xl border border-canvas-border bg-black/25 p-3 shadow-inner">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <h4 className="truncate font-mono text-xs text-canvas-accent">{nodeId}</h4>
-                  <span className="rounded bg-white/[0.05] px-1.5 py-0.5 text-[10px] text-slate-400">
-                    {fields.length} {fields.length === 1 ? "field" : "fields"}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {fields.map(([key, value]) => (
-                    <article key={`${nodeId}-${key}`} className="rounded-lg border border-white/[0.06] bg-black/20 p-2">
-                      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{key}</div>
-                      <pre className="whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-slate-300">
-                        {truncate(renderValue(value))}
-                      </pre>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+      {/* Content */}
+      {tab === "rendered" ? (
+        <div className="collector-prose max-h-[28rem] overflow-auto rounded-xl border p-4 shadow-inner" style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)" }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayText}</ReactMarkdown>
         </div>
-      ) : null}
-
-      {Object.keys(referenceOutputs).length > 0 ? (
-        <details className="rounded-xl border border-canvas-border bg-black/20 p-3">
-          <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Upstream reference outputs ({Object.keys(referenceOutputs).length})
-          </summary>
-          <pre className="mt-2 max-h-56 overflow-auto rounded-lg border border-white/[0.06] bg-black/30 p-2 font-mono text-[10px] leading-relaxed text-slate-300">
-            {renderValue(referenceOutputs)}
-          </pre>
-        </details>
-      ) : null}
-
-      <details className="rounded-xl border border-canvas-border bg-black/20 p-3">
-        <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Raw collector JSON
-        </summary>
-        <pre className="mt-2 max-h-56 overflow-auto rounded-lg border border-white/[0.06] bg-black/30 p-2 font-mono text-[10px] leading-relaxed text-slate-300">
-          {renderValue(collectorOutput)}
+      ) : (
+        <pre className="max-h-[28rem] overflow-auto rounded-xl border p-4 font-mono text-[10px] leading-relaxed shadow-inner" style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}>
+          {rawJson}
         </pre>
-      </details>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { CollectorOutputView } from "./CollectorOutputView";
 import { validateGraphForRun, withPrompt } from "../lib/graph";
+import { stripModelArtifacts } from "../lib/stripArtifacts";
 import { useCanvasStore } from "../stores/canvasStore";
 import { useRunStore } from "../stores/runStore";
 
@@ -57,16 +58,16 @@ export function Inspector() {
 
   if (!selected) {
     return (
-      <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+      <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
         <div className="ac-panel-header">
           <h2 className="ac-panel-title">Inspector</h2>
           <p className="ac-panel-sub">Select a node to edit details</p>
         </div>
-        <div className="flex flex-1 flex-col gap-4 p-4 text-sm text-slate-400">
+        <div className="flex flex-1 flex-col gap-4 p-4 text-sm" style={{ color: "var(--ac-muted)" }}>
           <p className="leading-relaxed">Click any agent or the collector on the canvas.</p>
           <div>
-            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Payload preview</div>
-            <pre className="max-h-52 overflow-auto rounded-xl border border-canvas-border bg-black/35 p-3 font-mono text-[10px] leading-relaxed text-slate-400 shadow-inner">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--ac-muted)" }}>Payload preview</div>
+            <pre className="max-h-52 overflow-auto rounded-xl border p-3 font-mono text-[10px] leading-relaxed shadow-inner" style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}>
               {validation.ok ? payloadPreview : validation.error}
             </pre>
           </div>
@@ -89,10 +90,10 @@ export function Inspector() {
     const live = streamText[selected.id];
 
     return (
-      <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+      <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
         <div className="ac-panel-header">
           <h2 className="ac-panel-title">Agent</h2>
-          <p className="truncate font-mono text-[10px] text-slate-500">{selected.id}</p>
+          <p className="truncate font-mono text-[10px]" style={{ color: "var(--ac-muted)" }}>{selected.id}</p>
         </div>
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
           <label className="ac-label">
@@ -167,9 +168,12 @@ export function Inspector() {
           </label>
           {(live || out) && (
             <div>
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Last run</div>
-              <pre className="max-h-44 overflow-auto rounded-xl border border-canvas-border bg-black/35 p-3 font-mono text-[10px] leading-relaxed text-slate-300 shadow-inner">
-                {JSON.stringify(out ?? (live ? { stream: live } : {}), null, 2)}
+              <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--ac-muted)" }}>Last run</div>
+              <pre className="max-h-44 overflow-auto rounded-xl border p-3 font-mono text-[10px] leading-relaxed shadow-inner" style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)", color: "var(--ac-muted)" }}>
+                {stripModelArtifacts(
+                  JSON.stringify(out ?? (live ? { stream: live } : {}), null, 2),
+                  d.provider,
+                )}
               </pre>
             </div>
           )}
@@ -190,9 +194,9 @@ export function Inspector() {
   const collectorProvider = cd.provider === "anthropic" ? "anthropic" : "openai";
 
   return (
-    <aside className="flex w-[22rem] shrink-0 flex-col border-l border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
-      <div className="ac-panel-header border-canvas-accent/20 bg-gradient-to-r from-canvas-accent/10 to-transparent">
-        <h2 className="ac-panel-title text-canvas-accent">Collector</h2>
+    <aside className="flex w-[22rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderLeft: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
+      <div className="ac-panel-header" style={{ background: "linear-gradient(to right, rgba(45,212,191,0.1), transparent)" }}>
+        <h2 className="ac-panel-title" style={{ color: "var(--ac-accent)" }}>Collector</h2>
         <p className="ac-panel-sub">Final synthesis agent</p>
       </div>
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
@@ -271,7 +275,7 @@ export function Inspector() {
           </select>
         </label>
         <div>
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Final output</div>
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--ac-muted)" }}>Final output</div>
           <CollectorOutputView collectorOutput={collectorOutput} />
         </div>
       </div>

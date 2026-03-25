@@ -41,7 +41,7 @@ const TEMPLATES: Array<{ label: string; data: Partial<AgentData> }> = [
 
 export function Palette() {
   return (
-    <aside className="flex w-[13.5rem] shrink-0 flex-col border-r border-canvas-border bg-canvas-elevated/75 backdrop-blur-xl">
+    <aside className="flex w-[13.5rem] shrink-0 flex-col backdrop-blur-xl" style={{ borderRight: "1px solid var(--ac-border)", background: "var(--ac-elevated)" }}>
       <div className="ac-panel-header">
         <h2 className="ac-panel-title">Library</h2>
         <p className="ac-panel-sub">Drag a block onto the canvas</p>
@@ -56,15 +56,16 @@ export function Palette() {
               e.dataTransfer.setData("application/reactflow", JSON.stringify({ kind: "agent", template: t.data }));
               e.dataTransfer.effectAllowed = "move";
             }}
-            className="group rounded-xl border border-canvas-border bg-black/20 px-3 py-2.5 text-left shadow-panel transition hover:border-canvas-accent/35 hover:bg-white/[0.04] hover:shadow-node active:cursor-grabbing"
+            className="group rounded-xl border px-3 py-2.5 text-left shadow-panel transition hover:border-canvas-accent/35 hover:shadow-node active:cursor-grabbing"
+            style={{ borderColor: "var(--ac-border)", background: "var(--ac-surface)" }}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-slate-100">{t.label}</span>
-              <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-500 opacity-0 transition group-hover:opacity-100">
+              <span className="text-sm font-semibold" style={{ color: "var(--ac-ink)" }}>{t.label}</span>
+              <span className="rounded-md px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide opacity-0 transition group-hover:opacity-100" style={{ background: "var(--ac-code-bg)", color: "var(--ac-muted)" }}>
                 Agent
               </span>
             </div>
-            <div className="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500">{t.data.role}</div>
+            <div className="mt-1 line-clamp-2 text-[11px] leading-snug" style={{ color: "var(--ac-muted)" }}>{t.data.role}</div>
           </button>
         ))}
         <button
@@ -74,7 +75,8 @@ export function Palette() {
             e.dataTransfer.setData("application/reactflow", JSON.stringify({ kind: "agent" }));
             e.dataTransfer.effectAllowed = "move";
           }}
-          className="rounded-xl border border-dashed border-white/15 bg-transparent px-3 py-2.5 text-left text-sm text-slate-400 transition hover:border-canvas-accent/40 hover:bg-white/[0.03] hover:text-slate-200"
+          className="rounded-xl border border-dashed bg-transparent px-3 py-2.5 text-left text-sm transition hover:border-canvas-accent/40"
+          style={{ borderColor: "var(--ac-border)", color: "var(--ac-muted)" }}
         >
           Blank agent
         </button>

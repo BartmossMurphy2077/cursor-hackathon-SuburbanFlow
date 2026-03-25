@@ -1,6 +1,7 @@
 import {
   Background,
   BackgroundVariant,
+  ConnectionMode,
   Controls,
   MiniMap,
   ReactFlow,
@@ -15,6 +16,7 @@ import type { AgentData } from "../lib/graph";
 import { AgentNode } from "../nodes/AgentNode";
 import { CollectorNode } from "../nodes/CollectorNode";
 import { useCanvasStore } from "../stores/canvasStore";
+import { useThemeStore } from "../stores/themeStore";
 
 const nodeTypes = {
   agent: AgentNode,
@@ -34,9 +36,21 @@ function FlowCanvasInner() {
   const addOrFocusCollector = useCanvasStore((s) => s.addOrFocusCollector);
   const showToast = useCanvasStore((s) => s.showToast);
 
+  const theme = useThemeStore((s) => s.theme);
   const rfRef = useRef<ReactFlowInstance | null>(null);
 
-  const defaultEdgeOptions = useMemo(() => ({ style: { stroke: "#64748b", strokeWidth: 1.5 } }), []);
+  const defaultEdgeOptions = useMemo(
+    () => ({
+      type: "smoothstep" as const,
+      style: { stroke: "#64748b", strokeWidth: 2 },
+      animated: true,
+    }),
+    [],
+  );
+  const connectionLineStyle = useMemo(
+    () => ({ stroke: "#2dd4bf", strokeWidth: 2.5, strokeDasharray: "6 3" }),
+    [],
+  );
 
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -70,6 +84,7 @@ function FlowCanvasInner() {
   return (
     <div className="relative h-full w-full">
       <ReactFlow
+        className={theme === "dark" ? "dark" : ""}
         nodes={nodes}
         edges={edges}
         onInit={(inst) => {
@@ -84,18 +99,26 @@ function FlowCanvasInner() {
         onNodeClick={(_, node) => setSelectedId(node.id)}
         onPaneClick={() => setSelectedId(null)}
         defaultEdgeOptions={defaultEdgeOptions}
+        connectionMode={ConnectionMode.Loose}
+        connectionLineStyle={connectionLineStyle}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.25}
         maxZoom={1.5}
+        snapToGrid
+        snapGrid={[12, 12]}
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.15} color="rgba(148,163,184,0.12)" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={22}
+          size={1.15}
+          color={theme === "dark" ? "rgba(148,163,184,0.12)" : "rgba(100,116,139,0.18)"}
+        />
         <Controls showInteractive={false} />
         <MiniMap
-          className="!overflow-hidden !rounded-xl !border !border-canvas-border !bg-canvas-elevated/90 !shadow-bar"
-          maskColor="rgba(9,11,15,0.85)"
-          nodeColor={() => "rgba(45,212,191,0.35)"}
+          maskColor={theme === "dark" ? "rgba(9,11,15,0.75)" : "rgba(248,250,252,0.7)"}
+          nodeColor={() => theme === "dark" ? "rgba(45,212,191,0.4)" : "rgba(13,148,136,0.45)"}
           nodeStrokeWidth={2}
           zoomable
           pannable
